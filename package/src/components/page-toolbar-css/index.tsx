@@ -2414,8 +2414,8 @@ export function PageFeedbackToolbarCSS({
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, [isActive, isDragging]);
 
-  // Draw mode: redraw helper
-  const redrawCanvas = useCallback((ctx: CanvasRenderingContext2D, strokes: typeof drawStrokes, hoveredIdx?: number | null, glowAlpha = 0.25) => {
+  // Draw mode: redraw helper — glowIntensity 0–1 controls shadow on hovered stroke
+  const redrawCanvas = useCallback((ctx: CanvasRenderingContext2D, strokes: typeof drawStrokes, hoveredIdx?: number | null, glowIntensity = 0) => {
     const scrollY = window.scrollY;
     const dpr = window.devicePixelRatio || 1;
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -2436,35 +2436,26 @@ export function PageFeedbackToolbarCSS({
       ctx.lineTo(last.x, last.y - offsetY);
     };
 
-    // Pass 1: glow behind hovered stroke
-    if (hoveredIdx != null && hoveredIdx < strokes.length) {
-      const stroke = strokes[hoveredIdx];
-      if (stroke.points.length >= 2) {
-        const offsetY = stroke.fixed ? 0 : scrollY;
-        ctx.beginPath();
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = 10;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.globalAlpha = glowAlpha;
-        tracePath(stroke, offsetY);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    // Pass 2: all strokes at normal weight
     for (let si = 0; si < strokes.length; si++) {
       const stroke = strokes[si];
       if (stroke.points.length < 2) continue;
       const offsetY = stroke.fixed ? 0 : scrollY;
+      const isHovered = si === hoveredIdx && glowIntensity > 0;
       ctx.beginPath();
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = 3;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      if (isHovered) {
+        ctx.shadowColor = stroke.color;
+        ctx.shadowBlur = 12 * glowIntensity;
+      }
       tracePath(stroke, offsetY);
       ctx.stroke();
+      if (isHovered) {
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+      }
     }
     ctx.restore();
   }, []);
@@ -2795,12 +2786,12 @@ export function PageFeedbackToolbarCSS({
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
       const ctx = canvas.getContext("2d");
-      if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight);
+      if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight, glowAlphaRef.current);
     };
 
     const onScroll = () => {
       const ctx = canvas.getContext("2d");
-      if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight);
+      if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight, glowAlphaRef.current);
     };
 
     resize();
@@ -2818,7 +2809,7 @@ export function PageFeedbackToolbarCSS({
     if (!canvas || !isActive || drawStrokes.length === 0) return;
 
     const effectiveHighlight = hoveredDrawingIdx ?? pendingAnnotation?.drawingIndex ?? null;
-    const targetAlpha = effectiveHighlight != null ? 0.25 : 0;
+    const targetAlpha = effectiveHighlight != null ? 1 : 0;
 
     // Already at target — no animation needed
     if (Math.abs(glowAlphaRef.current - targetAlpha) < 0.005) {
