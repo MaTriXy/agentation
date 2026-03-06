@@ -656,17 +656,12 @@ export function PageFeedbackToolbarCSS({
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showEntranceAnimation, setShowEntranceAnimation] = useState(false);
 
-  // Check if running on localhost - React detection only works locally
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1" ||
-      window.location.hostname === "0.0.0.0" ||
-      window.location.hostname.endsWith(".local"));
+  // Check if running in development mode - React detection only works in development mode
+  const isDevMode = process.env.NODE_ENV === "development";
 
   // Effective React mode - derived from outputDetail when enabled
   const effectiveReactMode: ReactComponentMode =
-    isLocalhost && settings.reactEnabled
+    isDevMode && settings.reactEnabled
       ? OUTPUT_TO_REACT_MODE[settings.outputDetail]
       : "off";
 
@@ -3299,7 +3294,7 @@ export function PageFeedbackToolbarCSS({
                   </div>
 
                   <div
-                    className={`${styles.settingsRow} ${styles.settingsRowMarginTop} ${!isLocalhost ? styles.settingsRowDisabled : ""}`}
+                    className={`${styles.settingsRow} ${styles.settingsRowMarginTop} ${!isDevMode ? styles.settingsRowDisabled : ""}`}
                   >
                     <div
                       className={`${styles.settingsLabel} ${!isDarkMode ? styles.light : ""}`}
@@ -3307,8 +3302,8 @@ export function PageFeedbackToolbarCSS({
                       React Components
                       <Tooltip
                         content={
-                          !isLocalhost
-                            ? "Disabled — production builds minify component names, making detection unreliable. Use on localhost in development mode."
+                          !isDevMode
+                            ? "Disabled — production builds minify component names, making detection unreliable. Use in development mode."
                             : "Include React component names in annotations"
                         }
                       >
@@ -3318,12 +3313,12 @@ export function PageFeedbackToolbarCSS({
                       </Tooltip>
                     </div>
                     <label
-                      className={`${styles.toggleSwitch} ${!isLocalhost ? styles.disabled : ""}`}
+                      className={`${styles.toggleSwitch} ${!isDevMode ? styles.disabled : ""}`}
                     >
                       <input
                         type="checkbox"
-                        checked={isLocalhost && settings.reactEnabled}
-                        disabled={!isLocalhost}
+                        checked={isDevMode && settings.reactEnabled}
+                        disabled={!isDevMode}
                         onChange={() =>
                           setSettings((s) => ({
                             ...s,
