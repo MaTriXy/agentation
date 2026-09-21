@@ -6,7 +6,7 @@ const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const directory = mkdtempSync(join(tmpdir(), 'agentation-http-policy-'));
 process.env.AGENTATION_TEST_DB_PATH = join(directory, 'test.db');
-const { startHttpServer, setCloudApiKey } = require('../.test-dist/http-entry.js');
+const { startHttpServer, setCloudApiKey, setHttpBaseUrl } = require('../.test-dist/http-entry.js');
 after(() => rmSync(directory, { recursive: true, force: true }));
 async function server(t, origins = 'https://app.example.test') {
   const previous = process.env.AGENTATION_CORS_ORIGINS;
@@ -158,4 +158,34 @@ test('loopback-only default rejects foreign Host headers and keeps local ones', 
   });
   for (const host of [`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`, `myapp.localhost:${port}`]) assert.equal(await status(host), 200, host);
   for (const host of ['evil.example', `evil.example:${port}`, '10.0.0.5:4747']) assert.equal(await status(host), 403, host);
+});
+
+test('deleting an MCP session aborts its in-flight tool call', { timeout: 8000 }, async t => {
+  const base = await server(t);
+  setHttpBaseUrl(base);
+  const listeners = async () => (await (await request(base, '/status')).json()).agentListeners;
+  const until = async (predicate, ms) => { const end = Date.now() + ms; while (Date.now() < end) { if (await predicate()) return true; await new Promise(r => setTimeout(r, 50)); } return predicate(); };
+  const init = await request(base, '/mcp', {
+    method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},
+    body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'abort-test',version:'1'}}}),
+  });
+  const sessionId = init.headers.get('mcp-session-id'); await init.text();
+  const baseline = await listeners();
+  // Watch a fresh session so pending notes from earlier tests cannot satisfy the call immediately.
+  const fresh = await (await request(base, '/sessions', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url:'http://abort.localhost'}) })).json();
+  await (await request(base, '/mcp', { method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream','Mcp-Session-Id':sessionId}, body:JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'}) })).text();
+  const call = request(base, '/mcp', {
+    method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream','Mcp-Session-Id':sessionId},
+    body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'agentation_watch_annotations',arguments:{sessionId:fresh.id,timeoutSeconds:30}}}),
+  }).then(r => r.text().catch(() => 'closed'), () => 'closed');
+  // The watch subscribes to the server's agent event stream while it waits.
+  assert.ok(await until(async () => (await listeners()) === baseline + 1, 3000), 'watch never subscribed');
+  const deleted = await request(base, '/mcp', {method:'DELETE',headers:{'Mcp-Session-Id':sessionId}});
+  assert.equal(deleted.status, 204);
+  // Closing the session must cancel the tool call, which releases its subscription.
+  assert.ok(await until(async () => (await listeners()) === baseline, 1500), 'watch kept its event subscription after its session was deleted');
+  await call;
+  // The finished call must not put the closed transport back into the session map.
+  const stale = await request(base, '/mcp', { method:'DELETE', headers:{'Mcp-Session-Id':sessionId} });
+  assert.equal(stale.status, 404, 'deleted session was reinserted by its in-flight request'); await stale.text();
 });

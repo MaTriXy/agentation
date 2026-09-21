@@ -2916,13 +2916,16 @@ function PageFeedbackToolbarForRoute({
   const clearAll = useCallback(() => {
     if (!routeAlive.current) return;
     // A delayed copy/send completion owns only its original, unchanged notes.
-    // Match by ID (or the local ID a server ID replaced) and comment rather than
-    // object identity: server ID swaps and session merges recreate objects.
-    const original = new Map(currentAnnotationsRef.current.map(a => [a.id, a]));
-    const batch = annotations.filter(a => {
-      const before = original.get(a.id) ?? original.get(markerKeys.current.get(a.id) ?? "");
-      return !!before && before.comment === a.comment && !deletedIds.current.has(a.id);
-    });
+    // `annotations` is the snapshot taken when the action ran; match it against
+    // the live list by ID and comment rather than object identity, because a
+    // server ID swap or session merge recreates the object. serverIds maps the
+    // local ID the snapshot still holds to the ID the server assigned since.
+    const live = new Map(currentAnnotationsRef.current.map(note => [note.id, note]));
+    const batch: Annotation[] = [];
+    for (const note of annotations) {
+      const now = live.get(serverIds.current.get(note.id) ?? note.id) ?? live.get(note.id);
+      if (now && now.comment === note.comment && !deletedIds.current.has(now.id) && !batch.includes(now)) batch.push(now);
+    }
     const count = batch.length;
     const currentLayout = layoutSnapshot.current;
     const placements = designPlacements.filter(p => currentLayout.designPlacements.includes(p) && !clearingLayout.current.placements.includes(p));
