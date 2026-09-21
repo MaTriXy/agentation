@@ -31,7 +31,6 @@ const releases: Release[] = [
   {
     version: "3.1.0",
     date: "September 20, 2026",
-    published: false,
     changes: [
       { type: "added", text: <>An optional app name and configurable <a href="/api#copy-formats" className="styled-link">Copy formats</a> for source paths, CSS classes or identifying attributes. Attribute-only selections can be saved without a comment.</> },
       { type: "added", text: <>An <a href="/api#open-in-editor" className="styled-link">Open in editor callback</a> for connecting available source locations to your editor.</> },
