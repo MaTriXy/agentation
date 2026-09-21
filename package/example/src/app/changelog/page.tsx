@@ -31,7 +31,6 @@ const releases: Release[] = [
   {
     version: "3.1.1",
     date: "September 21, 2026",
-    published: false,
     changes: [
       { type: "added", text: <>A <code>--host</code> option and <code>AGENTATION_HOST</code> variable for the MCP server, for serving browsers on other machines.</> },
       { type: "added", text: <><code>agentation-mcp doctor</code> checks that SQLite persistence is available for the running Node.js version.</> },
