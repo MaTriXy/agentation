@@ -1,28 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useExitCompletion } from "../../hooks/use-exit-completion";
 import styles from "./styles.module.scss";
-import { IconTrash } from "../icons";
+import { AnnotationEditor, type AnnotationEditorHandle } from "./annotation-editor";
 import { originalSetTimeout } from "../../utils/freeze-animations";
 
 // =============================================================================
 // Helpers
 // =============================================================================
-
-/** Focus an element while temporarily blocking focus-trap libraries (e.g. Radix
- *  FocusScope) from reclaiming focus via focusin/focusout handlers. */
-function focusBypassingTraps(el: HTMLElement | null) {
-  if (!el) return;
-  const trap = (e: Event) => e.stopImmediatePropagation();
-  document.addEventListener("focusin", trap, true);
-  document.addEventListener("focusout", trap, true);
-  try {
-    el.focus();
-  } finally {
-    document.removeEventListener("focusin", trap, true);
-    document.removeEventListener("focusout", trap, true);
-  }
-}
 
 // =============================================================================
 // Types
@@ -47,12 +33,18 @@ export interface AnnotationPopupCSSProps {
   onCancel: () => void;
   /** Called when delete button is clicked (only shown if provided) */
   onDelete?: () => void;
+  /** Optional host-provided action for opening the detected source in an editor. */
+  onOpenSource?: () => void;
+  /** Attribute-only selection can be saved without a feedback comment. */
+  allowEmpty?: boolean;
   /** Position styles (left, top) */
   style?: React.CSSProperties;
   /** Custom color for submit button and textarea focus (hex) */
   accentColor?: string;
   /** External exit state (parent controls exit animation) */
   isExiting?: boolean;
+  /** Called after the externally controlled exit animation finishes. */
+  onExitComplete?: () => void;
   /** Light mode styling */
   lightMode?: boolean;
   /** Computed styles for the selected element */
@@ -80,56 +72,40 @@ export const AnnotationPopupCSS = forwardRef<AnnotationPopupCSSHandle, Annotatio
       onSubmit,
       onCancel,
       onDelete,
+      onOpenSource,
+      allowEmpty = false,
       style,
       accentColor = "#3c82f7",
       isExiting = false,
+      onExitComplete,
       lightMode = false,
       computedStyles,
     },
     ref
   ) {
-    const [text, setText] = useState(initialValue);
     const [isShaking, setIsShaking] = useState(false);
     const [animState, setAnimState] = useState<"initial" | "enter" | "entered" | "exit">("initial");
-    const [isFocused, setIsFocused] = useState(false);
-    const [isStylesExpanded, setIsStylesExpanded] = useState(false); // Computed styles accordion state
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const editorRef = useRef<AnnotationEditorHandle>(null);
     const popupRef = useRef<HTMLDivElement>(null);
-    const cancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Sync with parent exit state
-    useEffect(() => {
-      if (isExiting && animState !== "exit") {
-        setAnimState("exit");
-      }
-    }, [isExiting, animState]);
 
     // Animate in on mount and focus textarea
     useEffect(() => {
       // Start enter animation (use originalSetTimeout to bypass freeze patch)
-      originalSetTimeout(() => {
-        setAnimState("enter");
+      const startTimer = originalSetTimeout(() => {
+        setAnimState(previous => previous === "initial" ? "enter" : previous);
       }, 0);
-      // Transition to entered state after animation completes
-      const enterTimer = originalSetTimeout(() => {
-        setAnimState("entered");
-      }, 200); // Match animation duration
-      const focusTimer = originalSetTimeout(() => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-          focusBypassingTraps(textarea);
-          textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
-          textarea.scrollTop = textarea.scrollHeight;
-        }
-      }, 50);
       return () => {
-        clearTimeout(enterTimer);
-        clearTimeout(focusTimer);
-        if (cancelTimerRef.current) clearTimeout(cancelTimerRef.current);
+        clearTimeout(startTimer);
         if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
       };
     }, []);
+
+    useEffect(() => {
+      if (isExiting) return;
+      const timer = originalSetTimeout(() => editorRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }, [isExiting]);
 
     // Shake animation
     const shake = useCallback(() => {
@@ -137,7 +113,7 @@ export const AnnotationPopupCSS = forwardRef<AnnotationPopupCSSHandle, Annotatio
       setIsShaking(true);
       shakeTimerRef.current = originalSetTimeout(() => {
         setIsShaking(false);
-        focusBypassingTraps(textareaRef.current);
+        editorRef.current?.focus();
       }, 250);
     }, []);
 
@@ -148,41 +124,25 @@ export const AnnotationPopupCSS = forwardRef<AnnotationPopupCSSHandle, Annotatio
 
     // Handle cancel with exit animation
     const handleCancel = useCallback(() => {
-      setAnimState("exit");
-      cancelTimerRef.current = originalSetTimeout(() => {
+      if (onExitComplete) {
         onCancel();
-      }, 150); // Match exit animation duration
-    }, [onCancel]);
+        return;
+      }
+      setAnimState("exit");
+    }, [onCancel, onExitComplete]);
 
-    // Handle submit
-    const handleSubmit = useCallback(() => {
-      if (!text.trim()) return;
-      onSubmit(text.trim());
-    }, [text, onSubmit]);
-
-    // Handle keyboard
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        e.stopPropagation();
-        if (e.nativeEvent.isComposing) return;
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          handleSubmit();
-        }
-        if (e.key === "Escape") {
-          handleCancel();
-        }
-      },
-      [handleSubmit, handleCancel]
-    );
-
+    const visibleAnimState = isExiting ? "exit" : animState;
+    useExitCompletion(popupRef, visibleAnimState === "exit", () => {
+      if (isExiting) onExitComplete?.();
+      else onCancel();
+    });
     const popupClassName = [
       styles.popup,
       lightMode ? styles.light : "",
-      animState === "enter" ? styles.enter : "",
-      animState === "entered" ? styles.entered : "",
-      animState === "exit" ? styles.exit : "",
-      isShaking ? styles.shake : "",
+      visibleAnimState === "enter" ? styles.enter : "",
+      visibleAnimState === "entered" ? styles.entered : "",
+      visibleAnimState === "exit" ? styles.exit : "",
+      isShaking && visibleAnimState !== "exit" ? styles.shake : "",
     ].filter(Boolean).join(" ");
 
     return (
@@ -191,107 +151,37 @@ export const AnnotationPopupCSS = forwardRef<AnnotationPopupCSSHandle, Annotatio
         className={popupClassName}
         data-annotation-popup
         style={style}
+        onAnimationEnd={(event) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.animationName.includes("popupEnter") && !isExiting) {
+            setAnimState("entered");
+          }
+        }}
+        onKeyDownCapture={(event) => {
+          if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
+          event.preventDefault();
+          event.stopPropagation();
+          handleCancel();
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={styles.header}>
-          {computedStyles && Object.keys(computedStyles).length > 0 ? (
-            <button
-              className={styles.headerToggle}
-              onClick={() => {
-                const wasExpanded = isStylesExpanded;
-                setIsStylesExpanded(!isStylesExpanded);
-                if (wasExpanded) {
-                  // Refocus textarea when closing
-                  originalSetTimeout(() => focusBypassingTraps(textareaRef.current), 0);
-                }
-              }}
-              type="button"
-            >
-              <svg
-                className={`${styles.chevron} ${isStylesExpanded ? styles.expanded : ""}`}
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M5.5 10.25L9 7.25L5.75 4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className={styles.element}>{element}</span>
-            </button>
-          ) : (
-            <span className={styles.element}>{element}</span>
-          )}
-          {timestamp && <span className={styles.timestamp}>{timestamp}</span>}
-        </div>
-
-        {/* Collapsible computed styles section - uses grid-template-rows for smooth animation */}
-        {computedStyles && Object.keys(computedStyles).length > 0 && (
-          <div className={`${styles.stylesWrapper} ${isStylesExpanded ? styles.expanded : ""}`}>
-            <div className={styles.stylesInner}>
-              <div className={styles.stylesBlock}>
-                {Object.entries(computedStyles).map(([key, value]) => (
-                  <div key={key} className={styles.styleLine}>
-                    <span className={styles.styleProperty}>
-                      {key.replace(/([A-Z])/g, "-$1").toLowerCase()}
-                    </span>
-                    : <span className={styles.styleValue}>{value}</span>;
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedText && (
-          <div className={styles.quote}>
-            &ldquo;{selectedText.slice(0, 80)}
-            {selectedText.length > 80 ? "..." : ""}&rdquo;
-          </div>
-        )}
-
-        <textarea
-          ref={textareaRef}
-          className={styles.textarea}
-          style={{ borderColor: isFocused ? accentColor : undefined }}
+        <AnnotationEditor
+          ref={editorRef}
+          element={element}
+          timestamp={timestamp}
+          selectedText={selectedText}
           placeholder={placeholder}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          rows={2}
-          onKeyDown={handleKeyDown}
+          initialValue={initialValue}
+          submitLabel={submitLabel}
+          onSubmit={onSubmit}
+          onCancel={handleCancel}
+          onDelete={onDelete}
+          onOpenSource={onOpenSource}
+          allowEmpty={allowEmpty}
+          accentColor={accentColor}
+          computedStyles={computedStyles}
+          disabled={visibleAnimState === "exit"}
         />
-
-        <div className={styles.actions}>
-          {onDelete && (
-            <div className={styles.deleteWrapper}>
-              <button className={styles.deleteButton} onClick={onDelete} type="button">
-                <IconTrash size={22} />
-              </button>
-            </div>
-          )}
-          <button className={styles.cancel} onClick={handleCancel}>
-            Cancel
-          </button>
-          <button
-            className={styles.submit}
-            style={{
-              backgroundColor: accentColor,
-              opacity: text.trim() ? 1 : 0.4,
-            }}
-            onClick={handleSubmit}
-            disabled={!text.trim()}
-          >
-            {submitLabel}
-          </button>
-        </div>
       </div>
     );
   }

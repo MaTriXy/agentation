@@ -8,7 +8,7 @@
 //
 // Toolbar/popup code must import `originalSetTimeout` etc. to bypass the patch.
 //
-// Patches are installed as a side effect of importing this module.
+// Patches are installed when the toolbar mounts, never on import.
 // =============================================================================
 
 // Exclude selectors — agentation UI elements should never be frozen
@@ -54,38 +54,37 @@ function getState(): FreezeState {
     };
   }
   const w = window as any;
-  if (!w[STATE_KEY]) {
-    w[STATE_KEY] = {
-      frozen: false,
-      installed: false,
-      origSetTimeout: null,
-      origSetInterval: null,
-      origRAF: null,
-      pausedAnimations: [],
-      frozenTimeoutQueue: [],
-      frozenRAFQueue: [],
-    };
-  }
-  return w[STATE_KEY];
+  return w[STATE_KEY] ?? {
+    frozen: false,
+    installed: false,
+    origSetTimeout: window.setTimeout.bind(window),
+    origSetInterval: window.setInterval.bind(window),
+    origRAF: window.requestAnimationFrame.bind(window),
+    pausedAnimations: [],
+    frozenTimeoutQueue: [],
+    frozenRAFQueue: [],
+  };
 }
 
-const _s = getState();
+let _s = getState();
 
 // ---------------------------------------------------------------------------
 // Install patches (once — survives HMR because `installed` lives on window)
 // ---------------------------------------------------------------------------
-if (typeof window !== "undefined" && !_s.installed) {
-  // Save the real functions
-  _s.origSetTimeout = window.setTimeout.bind(window);
-  _s.origSetInterval = window.setInterval.bind(window);
-  _s.origRAF = window.requestAnimationFrame.bind(window);
+export function installAnimationFreeze(): void {
+  if (typeof window === "undefined") return;
+  // Several bundles may have been imported before any toolbar mounted. Adopt
+  // the first mounted instance's state instead of wrapping its timers again.
+  const w = window as any;
+  _s = w[STATE_KEY] ?? (w[STATE_KEY] = _s);
+  if (_s.installed) return;
 
   // Patch setTimeout — queue callback when frozen (replayed on unfreeze)
   (window as any).setTimeout = (
     handler: TimerHandler,
     timeout?: number,
     ...args: any[]
-  ): ReturnType<typeof setTimeout> => {
+  ) => {
     if (typeof handler === "string") {
       return _s.origSetTimeout(handler, timeout);
     }
@@ -107,7 +106,7 @@ if (typeof window !== "undefined" && !_s.installed) {
     handler: TimerHandler,
     timeout?: number,
     ...args: any[]
-  ): ReturnType<typeof setInterval> => {
+  ) => {
     if (typeof handler === "string") {
       return _s.origSetInterval(handler, timeout);
     }
@@ -156,6 +155,7 @@ function isAgentationElement(el: Element | null): boolean {
 
 export function freeze(): void {
   if (typeof document === "undefined") return;
+  installAnimationFreeze();
   if (_s.frozen) return;
   _s.frozen = true;
   _s.frozenTimeoutQueue = [];

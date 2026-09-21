@@ -1,20 +1,17 @@
 // =============================================================================
-// Example Page Styles (based on benji.org styling)
+// Documentation foundations
 // =============================================================================
-
-// Google Fonts
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&display=swap');
 
 // CSS Variables
 :root {
   --font-primary: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-title: "IBM Plex Serif", Georgia, "Times New Roman", serif;
 
-  --body-color: #111;
+  --body-color: #333;
   --body-bg: #fdfdfc;
   --heading-color: #111;
   --hyperlink-color: #2480ed;
+  --hyperlink-hover-color: #0065d6;
 
   --selection-color: #111111;
   --selection-bg: #ededed;
@@ -60,12 +57,12 @@ body {
 
 // Typography
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-primary);
   color: rgba(0, 0, 0, 0.85);
   position: relative;
 }
 
 h1 {
-  font-family: var(--font-title);
   font-size: 1.25rem;
   font-weight: 500;
   line-height: 1.4;
@@ -104,9 +101,9 @@ h1 {
 h2 {
   font-size: 0.8125rem;
   font-weight: 550;
-  line-height: normal;
+  line-height: var(--docs-small-leading);
   letter-spacing: -0.005rem;
-  margin-bottom: 1.125rem;
+  margin-bottom: var(--docs-space-3);
   color: rgba(0, 0, 0, 0.78);
   display: flex;
   align-items: center;
@@ -123,7 +120,7 @@ h2 {
 h3 {
   font-size: 0.8125rem;
   font-weight: 500;
-  line-height: normal;
+  line-height: var(--docs-small-leading);
   letter-spacing: -0.005rem;
   color: rgba(0, 0, 0, 0.7);
 }
@@ -158,10 +155,10 @@ button {
   color: var(--hyperlink-color);
   font-weight: inherit;
   line-height: inherit;
-  transition: all 200ms ease;
+  transition: color 150ms ease;
 
   &:hover {
-    color: #74b1fd;
+    color: var(--hyperlink-hover-color);
   }
 }
 
@@ -171,27 +168,39 @@ button {
 
 .side-nav {
   position: fixed;
-  top: 3.75rem;
-  bottom: 1.5rem;
-  // Position relative to centered content (36rem = 576px max-width)
-  left: calc(50% - 18rem - 11rem);
+  top: 3.25rem;
+  bottom: 1rem;
+  // Keep navigation beside the shared reading column.
+  left: max(1rem, calc(50% - 30.75rem));
+  width: 11rem;
+  padding: 0.5rem 0.625rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  // Hide scrollbar but keep functionality
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  &::-webkit-scrollbar {
-    display: none;
+  .side-nav-scroll {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    // Preserve the links' hover/focus space inside the scrolling mask.
+    margin-inline: -0.375rem;
+    padding-inline: 0.375rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--nav-fade-top, 0px), #000 calc(100% - var(--nav-fade-bottom, 0px)), transparent);
+    scroll-padding-block: 1.5rem;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
   }
 
   .side-nav-logo {
+    flex-shrink: 0;
+    svg { overflow: visible; }
     font-size: 0.875rem;
     font-weight: 500;
-    color: #E5484D;
+    color: #111;
     margin-bottom: 1rem;
     display: flex;
     flex-direction: column;
@@ -202,33 +211,30 @@ button {
   .nav-links {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.125rem;
     cursor: pointer;
   }
 
   .nav-link {
     font-size: 0.75rem;
+    line-height: 1.5;
     font-variation-settings: 'wght' 450;
-    color: rgba(0, 0, 0, 0.35);
-    transition: color 0.15s ease, font-variation-settings 0.25s ease;
+    color: #737373;
+    padding: 0.1875rem 0.375rem;
+    margin-inline: -0.375rem;
+    border-radius: 0.25rem;
+    transition: color 150ms ease, font-variation-settings 200ms ease;
     display: flex;
     align-items: center;
     gap: 0.375rem;
 
-    &:hover {
-      color: rgba(0, 0, 0, 0.55);
-      font-variation-settings: 'wght' 550;
-    }
-
-    &.active {
-      color: rgba(0, 0, 0, 0.8);
-      font-variation-settings: 'wght' 550;
-    }
+    &:hover { color: #444; font-variation-settings: 'wght' 550; }
+    &.active { color: #222; font-variation-settings: 'wght' 550; }
   }
 
   .nav-badge {
     font-size: 0.5625rem;
-    color: #E5484D;
+    color: rgba(0, 0, 0, 0.45);
     font-weight: 500;
     font-variation-settings: 'wght' 500;
     text-transform: uppercase;
@@ -237,9 +243,9 @@ button {
   }
 
   .nav-section {
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     font-variation-settings: 'wght' 500;
-    color: rgba(0, 0, 0, 0.25);
+    color: var(--docs-subtle);
     margin-top: 0.75rem;
     margin-bottom: 0.125rem;
     cursor: default;
@@ -304,7 +310,7 @@ button {
 .article {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: var(--docs-space-6);
   max-width: 36rem;
   margin: 0 auto;
   padding: 3.5rem 1.5rem 3rem;
@@ -317,63 +323,40 @@ button {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding-bottom: 0.75rem;
+    padding-bottom: 0;
 
-    .heading-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: last baseline;
-
-      @media (max-width: 500px) {
-        flex-direction: column;
-        align-items: flex-start;
-        row-gap: 8px;
-        margin-bottom: 12px;
-      }
-    }
 
     .tagline {
-      color: rgba(0, 0, 0, 0.65);
-      font-size: 0.875rem;
+      color: var(--docs-muted);
+      font-size: var(--docs-body-size);
       font-weight: 450;
     }
 
     time {
       color: rgba(0, 0, 0, 0.4);
       font-size: 0.625rem;
-      font-weight: 450;
+      font-weight: 400;
       letter-spacing: 0.02rem;
       text-transform: uppercase;
     }
   }
 
-  section {
-    margin-top: 0.75rem;
+  > section {
+    margin-top: 0;
 
-    h3 {
-      margin-top: 1rem;
-      margin-bottom: 0.375rem;
-    }
-
-    h3:first-child {
-      margin-top: 0.5rem;
-    }
-
-    & + section {
-      margin-top: 1.5rem;
-    }
+    & + section { margin-top: var(--docs-space-2); }
+    > * + * { margin-top: var(--docs-space-3); }
+    > h3 { margin-top: var(--docs-space-6); margin-bottom: var(--docs-space-2); }
+    > h3:first-child { margin-top: 0; }
   }
 
-  p {
-    font-size: 0.875rem;
+  p, .faq-question {
+    font-size: var(--docs-body-size);
     font-weight: 450;
-    line-height: 1.45rem;
+    line-height: var(--docs-body-leading);
     letter-spacing: -0.005rem;
-    color: rgba(0, 0, 0, 0.8);
-
-    & + p {
-      margin-top: 0.75rem;
-    }
+    color: var(--body-color);
+    & + p { margin-top: var(--docs-space-3); }
   }
 
   blockquote {
@@ -391,11 +374,11 @@ button {
     gap: 0.25rem;
 
     li {
-      font-size: 0.875rem;
+      font-size: var(--docs-body-size);
       font-weight: 450;
-      line-height: 1.45rem;
+      line-height: var(--docs-body-leading);
       letter-spacing: -0.005rem;
-      color: rgba(0, 0, 0, 0.8);
+      color: var(--body-color);
 
       strong {
         font-weight: 550;
@@ -420,101 +403,34 @@ button {
 
   // Add spacing between paragraphs and lists
   p + ul, p + ol {
-    margin-top: 0.5rem;
+    margin-top: var(--docs-space-3);
   }
 
   ul + p, ol + p {
-    margin-top: 0.625rem;
+    margin-top: var(--docs-space-3);
   }
 
   code {
-    font-family: "SF Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
-    font-size: 0.8125rem;
+    font-family: var(--docs-mono);
+    font-size: 0.93em;
     background: rgba(0, 0, 0, 0.04);
     padding: 0.1rem 0.35rem;
     border-radius: 0.25rem;
     color: rgba(0, 0, 0, 0.75);
   }
 
-  .code-block {
-    font-family: "SF Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
-    font-size: 0.75rem;
-    line-height: 1.55;
-    background: #f8f8f8;
-    color: #333;
-    padding: 0.875rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    overflow-x: hidden;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin: 0.625rem 0;
-  }
+
+  :is(p, dd) strong { font-weight: 550; }
 
   // Inline links in article content
   p a, li a, td a {
     color: var(--hyperlink-color);
     transition: color 0.15s ease;
 
-    &:hover {
-      color: #74b1fd;
-    }
+    &:hover { color: var(--hyperlink-hover-color); }
   }
 
-  .format-toggle {
-    display: inline-flex;
-    gap: 0;
-    margin: 0.5rem 0;
-    border-radius: 0.375rem;
-    overflow: hidden;
 
-    button {
-      padding: 0.375rem 0.75rem;
-      font-size: 0.75rem;
-      font-weight: 500;
-      background: white;
-      color: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      margin-left: -1px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-
-      &:first-child {
-        margin-left: 0;
-        border-radius: 0.375rem 0 0 0.375rem;
-      }
-
-      &:last-child {
-        border-radius: 0 0.375rem 0.375rem 0;
-      }
-
-      &:hover:not(.active) {
-        background: rgba(0, 0, 0, 0.03);
-        color: rgba(0, 0, 0, 0.7);
-      }
-
-      &.active {
-        color: white;
-        border-color: transparent;
-        position: relative;
-        z-index: 1;
-      }
-
-      // Each format button gets a fitting active color
-      &:nth-child(1).active {
-        background: #6b7280; // Compact: gray (minimal)
-      }
-      &:nth-child(2).active {
-        background: #16a34a; // Standard: green
-      }
-      &:nth-child(3).active {
-        background: #2563eb; // Detailed: blue (informative)
-      }
-      &:nth-child(4).active {
-        background: #dc2626; // Forensic: red (critical/debug)
-      }
-    }
-  }
 }
 
 // =============================================================================
@@ -626,7 +542,7 @@ button {
 
 .demo-card {
   background: rgba(0, 0, 0, 0.03);
-  padding: 0.5rem 1rem 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 0.5rem;
 
   h3 {
@@ -769,8 +685,9 @@ button {
   }
 
   .mobile-nav-toggle {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: -0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -817,69 +734,29 @@ button {
 
   .mobile-nav-links-inner {
     overflow: hidden;
+    padding-inline: 0.625rem;
+    margin-inline: -0.625rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
 
   .mobile-nav-link {
-    font-size: 0.75rem;
+    padding: 0.375rem 0.625rem;
+    margin-inline: -0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
     font-variation-settings: 'wght' 450;
-    color: rgba(0, 0, 0, 0.35);
-    transition: color 0.15s ease, font-variation-settings 0.25s ease;
+    color: var(--docs-muted);
+    transition: color 0.15s ease, background-color 0.15s ease, font-variation-settings 0.25s ease;
 
-    &:hover {
-      color: rgba(0, 0, 0, 0.55);
-    }
+    &:hover { color: var(--docs-ink); background: #f5f5f5; }
 
     &.active {
-      color: rgba(0, 0, 0, 0.8);
+      background: #f5f5f5;
+      color: var(--docs-ink);
       font-variation-settings: 'wght' 550;
     }
-  }
-}
-
-// Mobile typed logo animations
-@keyframes mobileTypeChar {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes mobileBunnyFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.mobile-typed-char {
-  opacity: 0;
-  display: inline-block;
-  animation: mobileTypeChar 0.1s ease-out forwards;
-}
-
-.mobile-bunny-container {
-  width: 32px;
-  height: 32px;
-  margin-right: 0.375rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-
-  &.show {
-    animation: mobileBunnyFadeIn 0.4s ease-out forwards;
-  }
-}
-
-.mobile-typed-logo {
-  display: flex;
-  align-items: center;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.85);
-  min-height: 32px;
-
-  & > div:last-child {
-    transform: translateY(1px);
   }
 }
 
@@ -950,8 +827,8 @@ button {
 
   a {
     display: block;
-    line-height: 1rem;
-    color: rgba(0, 0, 0, 0.4);
+    line-height: 1.45;
+    color: var(--docs-muted);
     text-decoration: none;
     transition: 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
     transition-property: color, font-variation-settings;
@@ -961,7 +838,7 @@ button {
       color: rgba(0, 0, 0, 0.55);
     }
 
-    &[aria-current='true'] {
+    &[aria-current='location'] {
       font-weight: 500;
       color: rgba(0, 0, 0, 0.85);
     }
@@ -977,48 +854,64 @@ button {
 // TOC that expands inside nav item
 .nav-toc {
   margin-top: 0.375rem;
-  padding-left: 0.125rem;
-  padding-bottom: 0.5rem;
+  padding-left: 0.625rem;
+  padding-bottom: 0.625rem;
 }
 
 // =============================================================================
-// Install Snippet (header)
+// Shared documentation controls
 // =============================================================================
 
-.install-snippet {
+
+.docs-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.docs-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #777;
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease;
+
+  &:hover { color: #111; background: rgba(0, 0, 0, 0.04); }
+  &:active { background: rgba(0, 0, 0, 0.08); }
+  &:focus-visible { outline: 2px solid #2480ed; outline-offset: 3px; }
+  svg { flex-shrink: 0; }
+}
+.docs-copy-symbol { transition: opacity 150ms ease; }
+.docs-copy-inline { color: var(--hyperlink-color); font-size: inherit; padding: 0; }
+.docs-code { position: relative; margin-block: var(--docs-space-3); }
+.docs-code-copy { position: absolute; top: 8px; right: 8px; }
+.article .docs-code-copyable .code-block { padding-right: 3rem; }
+.article .code-block code { padding: 0; background: none; color: inherit; font: inherit; }
+
+.agent-setup { margin: 1rem 0; }
+.agent-setup-heading {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: "SF Mono", SFMono-Regular, ui-monospace, Consolas, monospace;
-  font-size: 0.6875rem;
-  color: rgba(0, 0, 0, 0.4);
-  transition: color 0.15s ease;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: #737373;
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: -0.25rem -0.5rem;
-  }
-
-  &:hover {
-    color: rgba(0, 0, 0, 0.7);
-  }
-
-  code {
-    background: none;
-    padding: 0;
-    font-size: inherit;
-    color: inherit;
-  }
-
-  svg {
-    flex-shrink: 0;
-    opacity: 0.7;
-  }
+}
+.hero-demo-container.reduced-motion .hero-demo-cursor { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .docs-copy-symbol, .docs-code code, .hero-demo-container * { transition: none !important; animation: none !important; }
 }
 
 // =============================================================================
@@ -1026,28 +919,8 @@ button {
 // =============================================================================
 
 .quickstart-links {
-  margin-top: 2rem !important;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  font-size: 0.8125rem;
-
-  p {
-    margin: 0.5rem 0;
-    color: rgba(0, 0, 0, 0.5);
-
-    &:first-child {
-      margin-top: 0;
-    }
-  }
-
-  .arrow {
-    display: inline-block;
-    transition: transform 0.15s ease;
-  }
-
-  a:hover .arrow {
-    transform: translateX(3px);
-  }
+  padding-top: var(--docs-space-6);
+  border-top: 1px solid var(--docs-line);
 }
 
 // =============================================================================
@@ -1114,4 +987,12 @@ button {
   .show-on-mobile {
     display: inline;
   }
+}
+
+.side-nav-logo svg, .mobile-nav-header > a svg { color: #111; }
+
+// Keep deep-linked headings clear of the mobile navigation.
+.article [id] { scroll-margin-top: 2rem; }
+@media (max-width: 980px) {
+  .article [id] { scroll-margin-top: 7rem; }
 }

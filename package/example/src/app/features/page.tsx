@@ -1,5 +1,9 @@
 "use client";
 
+import { DocLinks } from "../components/DocLinks";
+
+import { DocAside, DocFootnote, DocHeader, DocNote, ReferenceTable } from "../components/Documentation";
+
 import { Footer } from "../Footer";
 import { FeaturesDemo, SettingsDemo, SmartIdentificationDemo, MarkerKeyDemo, ComputedStylesDemo, ReactDetectionDemo, AgentChatDemo } from "../components/FeaturesDemo";
 
@@ -7,10 +11,7 @@ export default function FeaturesPage() {
   return (
     <>
       <article className="article">
-      <header>
-        <h1>Features</h1>
-        <p className="tagline">Everything Agentation can do</p>
-      </header>
+      <DocHeader title="Features" description="Everything Agentation can do" />
 
       <section>
         <h2 id="annotation-modes">Annotation modes</h2>
@@ -23,7 +24,7 @@ export default function FeaturesPage() {
       <section>
         <h2 id="toolbar-controls">Toolbar controls</h2>
         <ul>
-          <li><svg style={{ display: 'inline-block', verticalAlign: '-0.38em', width: '1.5em', height: '1.5em', margin: '0 -0.1em 0 0' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M8 6L8 18" /><path d="M16 18L16 6" /></svg> <strong>Pause</strong> <span style={{ color: 'rgba(0,0,0,0.25)', margin: '0 0.25em' }}>•</span> Freeze all animations to annotate specific states</li>
+          <li><svg style={{ display: 'inline-block', verticalAlign: '-0.38em', width: '1.5em', height: '1.5em', margin: '0 -0.1em 0 0' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M8 6L8 18" /><path d="M16 18L16 6" /></svg> <strong>Pause</strong> <span style={{ color: 'rgba(0,0,0,0.25)', margin: '0 0.25em' }}>•</span> Pause page motion to annotate specific states</li>
           <li><svg style={{ display: 'inline-block', verticalAlign: '-0.38em', width: '1.5em', height: '1.5em', margin: '0 -0.1em 0 0' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3.91752 12.7539C3.65127 12.2889 3.65127 11.7111 3.91752 11.2461C5.42678 8.59839 8.46097 6.25 12 6.25C15.539 6.25 18.5732 8.59839 20.0825 11.2461C20.3487 11.7111 20.3487 12.2889 20.0825 12.7539C18.5732 15.4016 15.539 17.75 12 17.75C8.46097 17.75 5.42678 15.4016 3.91752 12.7539Z" /><path d="M12 14.8261C13.5608 14.8261 14.8261 13.5608 14.8261 12C14.8261 10.4392 13.5608 9.17391 12 9.17391C10.4392 9.17391 9.17391 10.4392 9.17391 12C9.17391 13.5608 10.4392 14.8261 12 14.8261Z" /></svg> <strong>Visibility</strong> <span style={{ color: 'rgba(0,0,0,0.25)', margin: '0 0.25em' }}>•</span> Toggle annotation markers on/off while working</li>
           <li><svg style={{ display: 'inline-block', verticalAlign: '-0.38em', width: '1.5em', height: '1.5em', margin: '0 -0.1em 0 0' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4.75 11.25C4.75 10.4216 5.42157 9.75 6.25 9.75H12.75C13.5784 9.75 14.25 10.4216 14.25 11.25V17.75C14.25 18.5784 13.5784 19.25 12.75 19.25H6.25C5.42157 19.25 4.75 18.5784 4.75 17.75V11.25Z" /><path d="M17.25 14.25H17.75C18.5784 14.25 19.25 13.5784 19.25 12.75V6.25C19.25 5.42157 18.5784 4.75 17.75 4.75H11.25C10.4216 4.75 9.75 5.42157 9.75 6.25V6.75" /></svg> <strong>Copy</strong> <span style={{ color: 'rgba(0,0,0,0.25)', margin: '0 0.25em' }}>•</span> Get structured markdown for AI agents</li>
           <li><svg style={{ display: 'inline-block', verticalAlign: '-0.38em', width: '1.5em', height: '1.5em', margin: '0 -0.1em 0 0' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 11.5L10.125 15.5" /><path d="M14 11.5L13.87 15.5" /><path d="M9 7.5V6.25C9 5.42157 9.67157 4.75 10.5 4.75H13.5C14.3284 4.75 15 5.42157 15 6.25V7.5" /><path d="M5.5 7.75H18.5" /><path d="M6.75 7.75L7.11691 16.189C7.16369 17.2649 7.18708 17.8028 7.41136 18.2118C7.60875 18.5717 7.91211 18.8621 8.28026 19.0437C8.69854 19.25 9.23699 19.25 10.3139 19.25H13.6861C14.763 19.25 15.3015 19.25 15.7197 19.0437C16.0879 18.8621 16.3912 18.5717 16.5886 18.2118C16.8129 17.8028 16.8363 17.2649 16.8831 16.189L17.25 7.75" /></svg> <strong>Clear</strong> <span style={{ color: 'rgba(0,0,0,0.25)', margin: '0 0.25em' }}>•</span> Remove all annotations</li>
@@ -31,12 +32,12 @@ export default function FeaturesPage() {
           <li><svg style={{ display: 'inline-block', verticalAlign: '-0.24em', width: '1.25em', height: '1.25em', margin: '0 0.05em 0 0.1em' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="9" x2="9" y2="21" /></svg> <strong>Layout Mode</strong> <span style={{ color: 'rgba(0,0,0,0.25)', margin: '0 0.25em' }}>•</span> Place components and rearrange page sections</li>
           <li><svg style={{ display: 'inline-block', verticalAlign: '-0.38em', width: '1.5em', height: '1.5em', margin: '0 -0.1em 0 0' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.6504 5.81117C10.9939 4.39628 13.0061 4.39628 13.3496 5.81117C13.5715 6.72517 14.6187 7.15891 15.4219 6.66952C16.6652 5.91193 18.0881 7.33479 17.3305 8.57815C16.8411 9.38134 17.2748 10.4285 18.1888 10.6504C19.6037 10.9939 19.6037 13.0061 18.1888 13.3496C17.2748 13.5715 16.8411 14.6187 17.3305 15.4219C18.0881 16.6652 16.6652 18.0881 15.4219 17.3305C14.6187 16.8411 13.5715 17.2748 13.3496 18.1888C13.0061 19.6037 10.9939 19.6037 10.6504 18.1888C10.4285 17.2748 9.38135 16.8411 8.57815 17.3305C7.33479 18.0881 5.91193 16.6652 6.66952 15.4219C7.15891 14.6187 6.72517 13.5715 5.81117 13.3496C4.39628 13.0061 4.39628 10.9939 5.81117 10.6504C6.72517 10.4285 7.15891 9.38134 6.66952 8.57815C5.91193 7.33479 7.33479 5.91192 8.57815 6.66952C9.38135 7.15891 10.4285 6.72517 10.6504 5.81117Z"/><circle cx="12" cy="12" r="2.5"/></svg> <strong>Settings</strong> <span style={{ color: 'rgba(0,0,0,0.25)', margin: '0 0.25em' }}>•</span> Configure output detail, marker color, and behavior</li>
         </ul>
-        <p style={{ fontSize: '0.875rem', color: 'rgba(0,0,0,0.5)', marginTop: '0.75rem' }}>
-          Drag the toolbar to reposition it. Click a marker to remove it, or right-click to edit.
-        </p>
-        <p style={{ fontSize: '0.75rem', color: 'rgba(0,0,0,0.4)', marginTop: '0.5rem' }}>
-          *Only visible when webhooks are enabled and auto-send is off
-        </p>
+        <DocNote>
+          Drag the toolbar to reposition it. Hover a marker to preview the feedback, then click to edit. You can change marker clicks to delete in settings; right-click always opens the editor.
+        </DocNote>
+        <DocFootnote marker="*">
+          Only visible when webhooks are enabled and auto-send is off.
+        </DocFootnote>
       </section>
 
       <section>
@@ -72,7 +73,7 @@ export default function FeaturesPage() {
           When you hover over an element, you&rsquo;ll see the full component tree, making it easy for AI agents to locate the exact component in your codebase.
         </p>
         <ReactDetectionDemo />
-        <p style={{ marginTop: '1rem' }}>
+        <p>
           Toggle React detection on/off in settings. The detection mode adapts automatically based on your output format:
         </p>
         <ul>
@@ -94,48 +95,49 @@ export default function FeaturesPage() {
           <li><strong>Wireframe new page</strong> – Toggle wireframe mode to fade out the current page and sketch a layout from scratch, with an opacity slider and a purpose field for context</li>
           <li><strong>Agent sync</strong> – Changes appear as annotations with <code>kind: &quot;placement&quot;</code> or <code>kind: &quot;rearrange&quot;</code></li>
         </ul>
-        <p style={{ fontSize: '0.8125rem', color: 'rgba(0,0,0,0.55)', marginTop: '0.5rem' }}>
+        <DocNote>
           Placements are spatial hints, not pixel-perfect specs. The agent receives component type, approximate position, and size relative to the viewport, then translates that into real CSS. Results will vary depending on the agent and your codebase.
-        </p>
+        </DocNote>
       </section>
 
       <section>
         <h2 id="keyboard-shortcuts">Keyboard shortcuts</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+        <ReferenceTable label="Keyboard shortcuts">
+            <thead><tr><th scope="col">Key</th><th scope="col">Action</th></tr></thead>
           <tbody>
             <tr>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}><code>Cmd+Shift+F</code> / <code>Ctrl+Shift+F</code></td>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>Toggle feedback mode</td>
+              <td><code>Cmd+Shift+F</code> / <code>Ctrl+Shift+F</code></td>
+              <td>Toggle feedback mode</td>
             </tr>
             <tr>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}><code>Esc</code></td>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>Close toolbar or cancel</td>
+              <td><code>Esc</code></td>
+              <td>Close toolbar or cancel</td>
             </tr>
             <tr>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}><code>L</code></td>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>Toggle layout mode</td>
+              <td><code>L</code></td>
+              <td>Toggle layout mode</td>
             </tr>
             <tr>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}><code>P</code></td>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>Pause/resume animations</td>
+              <td><code>P</code></td>
+              <td>Pause/resume animations</td>
             </tr>
             <tr>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}><code>H</code></td>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>Hide/show markers</td>
+              <td><code>H</code></td>
+              <td>Hide/show markers</td>
             </tr>
             <tr>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}><code>C</code></td>
-              <td style={{ padding: '0.5rem 0', borderBottom: '1px solid rgba(0,0,0,0.06)', color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>Copy feedback</td>
+              <td><code>C</code></td>
+              <td>Copy feedback</td>
             </tr>
             <tr>
-              <td style={{ padding: '0.5rem 0' }}><code>X</code></td>
-              <td style={{ padding: '0.5rem 0', color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>Clear all annotations</td>
+              <td><code>X</code></td>
+              <td>Clear all annotations</td>
             </tr>
           </tbody>
-        </table>
-        <p style={{ fontSize: '0.75rem', color: 'rgba(0,0,0,0.5)', marginTop: '0.75rem' }}>
+        </ReferenceTable>
+        <DocNote>
           Shortcuts are disabled when typing in an input field.
-        </p>
+        </DocNote>
       </section>
 
       <section>
@@ -145,9 +147,9 @@ export default function FeaturesPage() {
           Agents can query, respond to, and manage your feedback:
         </p>
         <AgentChatDemo />
-        <p style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: 'rgba(0,0,0,0.5)' }}>
+        <DocNote>
           Agents can acknowledge, ask questions, resolve with summaries, or dismiss with reasons.
-        </p>
+        </DocNote>
       </section>
 
       <section>
@@ -156,17 +158,23 @@ export default function FeaturesPage() {
         <SettingsDemo />
       </section>
 
-      <section className="limitations-section">
-        <h3 style={{ fontSize: '0.75rem', fontWeight: 500, color: 'rgba(0,0,0,0.45)', marginBottom: '0.5rem' }}>Limitations</h3>
-        <ul style={{ fontSize: '0.75rem', color: 'rgba(0,0,0,0.5)', lineHeight: 1.5 }}>
+      <section>
+        <h2 id="integrations">Fit your app</h2>
+        <p>Pick targets inside open shadow roots and same-origin embedded pages. For a modal or popover, pass its content element to <code>portalContainer</code> so feedback stays within the host’s focus boundary.</p>
+        <p>Use an app name and stable data attributes to make feedback easier to identify. Copy full feedback or just source paths, classes or an attribute value. Add your own editor action when a source location is available.</p>
+        <DocLinks links={[{ href: "/api#copy-formats", label: "Integration examples and supported boundaries" }]} />
+      </section>
+
+      <DocAside title="Limitations">
+        <ul>
           <li><strong>Desktop only</strong> &mdash; requires a desktop browser</li>
-          <li><strong>Per-page storage</strong> &mdash; localStorage persists 7 days. Use <a href="/install#agent-integration">MCP server</a> for cross-page persistence.</li>
-          <li><strong>Static positions</strong> &mdash; markers don&rsquo;t update if layout changes</li>
+          <li><strong>Per-page storage</strong> &mdash; localStorage persists 7 days. Hash-based routes can opt into separate storage. Use the <a href="/install#agent-integration">MCP server</a> to share feedback with your agent.</li>
+          <li><strong>Layout changes</strong> &mdash; same-origin single-element frame markers track child scrolling. Arbitrary page reflows and saved group geometry are not continuously tracked.</li>
           <li><strong>No screenshots</strong> &mdash; output is text-only</li>
           <li><strong>Animation pause</strong> &mdash; freezes most animations and videos on the page. Some third-party animation libraries may not fully pause.</li>
           <li><strong>React 18+ only</strong></li>
         </ul>
-      </section>
+      </DocAside>
     </article>
 
     <Footer />

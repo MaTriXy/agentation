@@ -1,32 +1,16 @@
 "use client";
 
+import { DemoTabs } from "../components/DemoTabs";
+import { DocLinks } from "../components/DocLinks";
+import { DocHeader } from "../components/Documentation";
+
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Highlight, themes } from "prism-react-renderer";
+import { CodeBlock } from "../components/CodeBlock";
 import { Footer } from "../Footer";
 
 type OutputFormat = 'compact' | 'standard' | 'detailed' | 'forensic';
 
 const FORMAT_STORAGE_KEY = 'agentation-output-format';
-
-function CodeBlock({ code, language = "tsx", textOpacity = 1 }: { code: string; language?: string; textOpacity?: number }) {
-  return (
-    <Highlight theme={themes.github} code={code.trim()} language={language}>
-      {({ style, tokens, getLineProps, getTokenProps }) => (
-        <pre className="code-block" style={{ ...style, background: 'transparent' }}>
-          <div style={{ opacity: textOpacity, transition: 'opacity 0.15s ease-out' }}>
-            {tokens.map((line, i) => (
-              <div key={i} {...getLineProps({ line })}>
-                {line.map((token, key) => (
-                  <span key={key} {...getTokenProps({ token })} />
-                ))}
-              </div>
-            ))}
-          </div>
-        </pre>
-      )}
-    </Highlight>
-  );
-}
 
 function AnimatedCodeBlock({ code, language }: { code: string; language?: string }) {
   const [textOpacity, setTextOpacity] = useState(1);
@@ -185,10 +169,7 @@ export default function OutputPage() {
   return (
     <>
       <article className="article">
-      <header>
-        <h1>Output</h1>
-        <p className="tagline">How Agentation structures feedback for AI agents</p>
-      </header>
+      <DocHeader title="Output" description="How Agentation structures feedback for AI agents" />
 
       <section>
         <p>
@@ -196,35 +177,19 @@ export default function OutputPage() {
           Four formats are available:
         </p>
         {outputFormat && (
-          <>
-            <div className="format-toggle" style={{ marginTop: '0.75rem' }}>
-              <button
-                className={outputFormat === 'compact' ? 'active' : ''}
-                onClick={() => handleFormatChange('compact')}
-              >
-                Compact
-              </button>
-              <button
-                className={outputFormat === 'standard' ? 'active' : ''}
-                onClick={() => handleFormatChange('standard')}
-              >
-                Standard
-              </button>
-              <button
-                className={outputFormat === 'detailed' ? 'active' : ''}
-                onClick={() => handleFormatChange('detailed')}
-              >
-                Detailed
-              </button>
-              <button
-                className={outputFormat === 'forensic' ? 'active' : ''}
-                onClick={() => handleFormatChange('forensic')}
-              >
-                Forensic
-              </button>
-            </div>
+          <DemoTabs
+            label="Output format"
+            items={[
+              { value: 'compact', label: 'Compact' },
+              { value: 'standard', label: 'Standard' },
+              { value: 'detailed', label: 'Detailed' },
+              { value: 'forensic', label: 'Forensic' },
+            ]}
+            value={outputFormat}
+            onChange={handleFormatChange}
+          >
             <AnimatedCodeBlock code={outputExamples[outputFormat]} language="markdown" />
-          </>
+          </DemoTabs>
         )}
       </section>
 
@@ -279,6 +244,13 @@ export default function OutputPage() {
           <li><strong>Remove noise</strong> &mdash; delete annotations that aren&rsquo;t relevant</li>
           <li><strong>Add instructions</strong> &mdash; append &ldquo;Fix these issues and run the tests&rdquo;</li>
         </ul>
+      </section>
+      <section>
+        <h2 id="custom-copy">Copy just what you need</h2>
+        <p>The detail levels above apply to markdown output. With <code>copyFormat</code>, Copy can instead return source paths, CSS classes or an identifying attribute.</p>
+        <CodeBlock code={`<Agentation appName="Checkout preview" copyFormat={{ attribute: "data-qa" }} />`} />
+        <p>Metadata values appear once per line, without duplicates. Missing values do not replace your clipboard. Send retains the structured markdown and annotations, regardless of your Copy format.</p>
+        <DocLinks links={[{ href: "/api#copy-formats", label: "Configure copy formats and callbacks" }]} />
       </section>
     </article>
 

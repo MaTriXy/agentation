@@ -40,12 +40,12 @@ export function setApiKey(key: string): void {
 // HTTP Client
 // -----------------------------------------------------------------------------
 
-async function httpGet<T>(path: string): Promise<T> {
+async function httpGet<T>(path: string, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = {};
   if (apiKey) {
     headers["x-api-key"] = apiKey;
   }
-  const res = await fetch(`${httpBaseUrl}${path}`, { headers });
+  const res = await fetch(`${httpBaseUrl}${path}`, { headers, signal });
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`HTTP ${res.status}: ${body}`);
@@ -304,6 +304,9 @@ type Annotation = {
   timestamp?: number;
   nearbyText?: string;
   reactComponents?: string;
+  sourceFile?: string;
+  attributes?: Record<string, string>;
+  frame?: import("../types").Annotation["frame"];
   status: string;
   kind?: "feedback" | "placement" | "rearrange";
   placement?: {
@@ -345,6 +348,9 @@ function mapAnnotationForMcp(a: Annotation) {
     timestamp: a.timestamp,
     nearbyText: a.nearbyText,
     reactComponents: a.reactComponents,
+    ...(a.sourceFile ? { sourceFile: a.sourceFile } : {}),
+    ...(a.attributes ? { attributes: a.attributes } : {}),
+    ...(a.frame ? { frame: a.frame } : {}),
     ...(a.kind === "placement" && a.placement ? { placement: a.placement } : {}),
     ...(a.kind === "rearrange" && a.rearrange ? { rearrange: a.rearrange } : {}),
   };
@@ -385,34 +391,68 @@ type WatchAnnotationsResult =
  * When the first annotation is detected, waits for a batch window to collect
  * additional annotations directly from SSE event payloads.
  *
- * Initial sync events (sequence 0) are ignored to prevent false triggers
- * from pre-existing pending annotations when the SSE connection opens.
+ * A second pending read after connecting covers arrivals between the initial
+ * drain and the SSE subscription. IDs deduplicate that read against live events.
+ * Initial sync events (sequence 0) are ignored in favor of this current read.
  *
  * Watches for new annotations via SSE and collects them into a batch.
  */
 function watchForAnnotations(
   sessionId: string | undefined,
   batchWindowMs: number,
-  timeoutMs: number
+  timeoutMs: number,
+  requestSignal?: AbortSignal
 ): Promise<WatchAnnotationsResult> {
   return new Promise((resolve) => {
     let aborted = false;
     const controller = new AbortController();
     let batchTimeout: ReturnType<typeof setTimeout> | null = null;
     const detectedSessions = new Set<string>();
+    const collectedIds = new Set<string>();
     const collectedAnnotations: Annotation[] = [];
 
     const cleanup = () => {
       aborted = true;
       controller.abort();
+      clearTimeout(timeoutId);
       if (batchTimeout) clearTimeout(batchTimeout);
+      requestSignal?.removeEventListener("abort", cancel);
     };
 
-    // Set overall timeout
+    // This deadline waits for the first annotation, not the end of its batch.
     const timeoutId = setTimeout(() => {
       cleanup();
       resolve({ type: "timeout" });
     }, timeoutMs);
+
+    const cancel = () => {
+      cleanup();
+      resolve({ type: "error", message: "Watch cancelled" });
+    };
+    requestSignal?.addEventListener("abort", cancel, { once: true });
+    if (requestSignal?.aborted) {
+      cancel();
+      return;
+    }
+
+    const collect = (annotation: Annotation) => {
+      if (aborted || !annotation?.id || collectedIds.has(annotation.id)) return;
+      if (sessionId && annotation.sessionId !== sessionId) return;
+      collectedIds.add(annotation.id);
+      detectedSessions.add(annotation.sessionId);
+      collectedAnnotations.push(annotation);
+      if (!batchTimeout) {
+        clearTimeout(timeoutId);
+        batchTimeout = setTimeout(() => {
+          cleanup();
+          resolve({
+            type: "annotations",
+            annotations: collectedAnnotations,
+            sessions: Array.from(detectedSessions),
+          });
+        }, batchWindowMs);
+      }
+    };
 
     // Connect to SSE endpoint with agent=true to be counted as an agent listener
     const sseUrl = sessionId
@@ -445,6 +485,17 @@ function watchForAnnotations(
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+
+        // Read in parallel with SSE so a slow pending response cannot prevent
+        // live events from starting their batch window. Cleanup aborts both.
+        const pendingPath = sessionId ? `/sessions/${sessionId}/pending` : "/pending";
+        void httpGet<PendingResponse>(pendingPath, controller.signal)
+          .then((pending) => pending.annotations.forEach(collect))
+          .catch((err) => {
+            if (aborted) return;
+            cleanup();
+            resolve({ type: "error", message: `Pending check failed after connecting: ${err instanceof Error ? err.message : "Unknown error"}` });
+          });
 
         while (!aborted) {
           const { done, value } = await reader.read();
@@ -480,21 +531,7 @@ function watchForAnnotations(
                   // If filtering by session, check it matches
                   if (sessionId && event.sessionId !== sessionId) continue;
 
-                  detectedSessions.add(event.sessionId);
-                  collectedAnnotations.push(event.payload as Annotation);
-
-                  // First annotation detected — start batch window
-                  if (!batchTimeout) {
-                    batchTimeout = setTimeout(() => {
-                      clearTimeout(timeoutId);
-                      cleanup();
-                      resolve({
-                        type: "annotations",
-                        annotations: collectedAnnotations,
-                        sessions: Array.from(detectedSessions),
-                      });
-                    }, batchWindowMs);
-                  }
+                  collect(event.payload as Annotation);
                 }
               } catch {
                 // Ignore parse errors for individual events
@@ -506,7 +543,7 @@ function watchForAnnotations(
       .catch((err) => {
         // Connection error or aborted
         if (!aborted) {
-          clearTimeout(timeoutId);
+          cleanup();
           const message = err instanceof Error ? err.message : "Unknown connection error";
           // Check for common connection errors
           if (message.includes("ECONNREFUSED") || message.includes("fetch failed")) {
@@ -522,7 +559,7 @@ function watchForAnnotations(
   });
 }
 
-export async function handleTool(name: string, args: unknown): Promise<ToolResult> {
+export async function handleTool(name: string, args: unknown, signal?: AbortSignal): Promise<ToolResult> {
   switch (name) {
     case "agentation_list_sessions": {
       const sessions = await httpGet<Session[]>("/sessions");
@@ -639,6 +676,7 @@ export async function handleTool(name: string, args: unknown): Promise<ToolResul
 
     case "agentation_watch_annotations": {
       const parsed = WatchAnnotationsSchema.parse(args);
+      if (signal?.aborted) return error("Watch cancelled");
       const sessionId = parsed.sessionId;
       const batchWindowSeconds = Math.min(60, Math.max(1, parsed.batchWindowSeconds ?? 10));
       const timeoutSeconds = Math.min(300, Math.max(1, parsed.timeoutSeconds ?? 120));
@@ -648,7 +686,8 @@ export async function handleTool(name: string, args: unknown): Promise<ToolResul
       // the previous batch (when watch_annotations wasn't running).
       try {
         const pendingPath = sessionId ? `/sessions/${sessionId}/pending` : "/pending";
-        const pending = await httpGet<PendingResponse>(pendingPath);
+        const pending = await httpGet<PendingResponse>(pendingPath, signal);
+        if (signal?.aborted) return error("Watch cancelled");
         if (pending.count > 0) {
           const sessions = [...new Set(pending.annotations.map((a) => a.sessionId))];
           return success({
@@ -659,13 +698,15 @@ export async function handleTool(name: string, args: unknown): Promise<ToolResul
           });
         }
       } catch (err) {
+        if (signal?.aborted) return error("Watch cancelled");
         console.error("[MCP] Pending drain failed, falling through to SSE watch:", err);
       }
 
       const result = await watchForAnnotations(
         sessionId,
         batchWindowSeconds * 1000,
-        timeoutSeconds * 1000
+        timeoutSeconds * 1000,
+        signal
       );
 
       switch (result.type) {
@@ -722,10 +763,10 @@ export async function startMcpServer(baseUrl?: string): Promise<void> {
   });
 
   // Handle tool calls
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request, context) => {
     const { name, arguments: args } = request.params;
     try {
-      return await handleTool(name, args);
+      return await handleTool(name, args, context.signal);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       return error(message);

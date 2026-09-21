@@ -8,26 +8,19 @@ export default function LayoutModePage() {
     <>
       <article className="article">
         <header>
-          <p
-            style={{
-              fontSize: "0.6875rem",
-              fontWeight: 450,
-              color: "rgba(0, 0, 0, 0.4)",
-              margin: "0 0 0.5rem 0",
-            }}
-          >
+          <p className="docs-post-date">
             March 24, 2026
           </p>
           <h1>Introducing Layout Mode</h1>
           <p className="tagline">Explore, wireframe, rearrange</p>
         </header>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "0.75rem" }}>
-          <p style={{ margin: 0 }}>
+        <div className="docs-post-intro">
+          <p>
             Annotations are good for pointing at things and saying what&rsquo;s wrong. But sometimes you don&rsquo;t know what&rsquo;s wrong yet. You&rsquo;re still figuring out what the page should look like.
           </p>
 
-          <p style={{ margin: 0 }}>
+          <p>
             Layout mode lets you show that instead of explaining it. Press <code>L</code>, drag components onto the page, rearrange sections, or wireframe a new page from scratch. Your agent gets coordinates and dimensions instead of a paragraph.
           </p>
         </div>

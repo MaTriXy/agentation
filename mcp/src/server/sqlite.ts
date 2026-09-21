@@ -102,6 +102,7 @@ function initDatabase(db: Database.Database): void {
       is_multi_select INTEGER DEFAULT 0,
       is_fixed INTEGER DEFAULT 0,
       react_components TEXT,
+      source_file TEXT,
       url TEXT,
       intent TEXT,
       severity TEXT,
@@ -215,6 +216,9 @@ function rowToAnnotation(row: Record<string, unknown>): Annotation {
     isMultiSelect: Boolean(row.is_multi_select),
     isFixed: Boolean(row.is_fixed),
     reactComponents: row.react_components as string | undefined,
+    sourceFile: row.source_file as string | undefined,
+    ...(extra?.attributes ? { attributes: extra.attributes } : {}),
+    ...(extra?.frame ? { frame: extra.frame } : {}),
     kind,
     ...(kind === "placement" && extra?.placement ? { placement: extra.placement } : {}),
     ...(kind === "rearrange" && extra?.rearrange ? { rearrange: extra.rearrange } : {}),
@@ -231,6 +235,56 @@ function rowToAnnotation(row: Record<string, unknown>): Annotation {
   };
 }
 
+/** Allocate persisted event IDs in SQLite and publish only after commit. */
+function createEventWriter(db: Database.Database) {
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS event_sequence (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        value INTEGER NOT NULL
+      );
+      INSERT OR IGNORE INTO event_sequence (id, value)
+        SELECT 1, COALESCE(MAX(sequence), 0) FROM events;
+      UPDATE event_sequence SET value = MAX(value, (SELECT COALESCE(MAX(sequence), 0) FROM events)) WHERE id = 1;
+    `);
+  }).immediate();
+  const current = db.prepare("SELECT value FROM event_sequence WHERE id = 1").get() as { value: number };
+  eventBus.setSequence(current.value);
+  const allocate = db.prepare("UPDATE event_sequence SET value = MAX(value, ?) + 1 WHERE id = 1 RETURNING value");
+  const insert = db.prepare(`
+    INSERT INTO events (type, timestamp, session_id, sequence, payload, user_id)
+    VALUES (@type, @timestamp, @sessionId, @sequence, @payload, @userId)
+  `);
+  const pending: AFSEvent[] = [];
+
+  return {
+    record(type: AFSEventType, sessionId: string, payload: AFSEvent["payload"], userId?: string) {
+      const { value } = allocate.get(eventBus.getSequence()) as { value: number };
+      const event: AFSEvent = { type, sessionId, payload, sequence: value, timestamp: new Date().toISOString() };
+      insert.run({ ...event, payload: JSON.stringify(payload), userId: userId ?? null });
+      pending.push(event);
+    },
+    transaction<Args extends unknown[], Result>(operation: (...args: Args) => Result) {
+      const run = db.transaction(operation);
+      return (...args: Args): Result => {
+        const outermost = !db.inTransaction;
+        const start = pending.length;
+        try {
+          const result = run.immediate(...args);
+          if (outermost) {
+            const committed = pending.splice(0);
+            for (const event of committed) eventBus.publish(event);
+          }
+          return result;
+        } catch (error) {
+          pending.splice(start);
+          throw error;
+        }
+      };
+    },
+  };
+}
+
 // -----------------------------------------------------------------------------
 // SQLite Store Implementation
 // -----------------------------------------------------------------------------
@@ -243,12 +297,9 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
   // Safe migrations for new columns (no-ops if already exist)
   try { db.exec("ALTER TABLE annotations ADD COLUMN kind TEXT DEFAULT 'feedback'"); } catch {}
   try { db.exec("ALTER TABLE annotations ADD COLUMN extra TEXT"); } catch {}
+  try { db.exec("ALTER TABLE annotations ADD COLUMN source_file TEXT"); } catch {}
 
-  // Restore event sequence from last event
-  const lastEvent = db.prepare("SELECT MAX(sequence) as seq FROM events").get() as { seq: number | null };
-  if (lastEvent?.seq) {
-    eventBus.setSequence(lastEvent.seq);
-  }
+  const events = createEventWriter(db);
 
   // Prepared statements
   const stmts = {
@@ -269,13 +320,13 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
         id, session_id, x, y, comment, element, element_path, timestamp,
         selected_text, bounding_box, nearby_text, css_classes, nearby_elements,
         computed_styles, full_path, accessibility, is_multi_select, is_fixed,
-        react_components, url, intent, severity, status, thread, created_at,
+        react_components, source_file, url, intent, severity, status, thread, created_at,
         updated_at, resolved_at, resolved_by, author_id, kind, extra
       ) VALUES (
         @id, @sessionId, @x, @y, @comment, @element, @elementPath, @timestamp,
         @selectedText, @boundingBox, @nearbyText, @cssClasses, @nearbyElements,
         @computedStyles, @fullPath, @accessibility, @isMultiSelect, @isFixed,
-        @reactComponents, @url, @intent, @severity, @status, @thread, @createdAt,
+        @reactComponents, @sourceFile, @url, @intent, @severity, @status, @thread, @createdAt,
         @updatedAt, @resolvedAt, @resolvedBy, @authorId, @kind, @extra
       )
     `),
@@ -292,15 +343,15 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
         resolved_by = COALESCE(@resolvedBy, resolved_by),
         thread = COALESCE(@thread, thread),
         intent = COALESCE(@intent, intent),
-        severity = COALESCE(@severity, severity)
+        severity = COALESCE(@severity, severity),
+        source_file = COALESCE(@sourceFile, source_file),
+        x = COALESCE(@x, x),
+        y = COALESCE(@y, y),
+        extra = COALESCE(@extra, extra)
       WHERE id = @id
     `),
 
     // Events
-    insertEvent: db.prepare(`
-      INSERT INTO events (type, timestamp, session_id, sequence, payload)
-      VALUES (@type, @timestamp, @sessionId, @sequence, @payload)
-    `),
     getEventsSince: db.prepare(`
       SELECT * FROM events WHERE session_id = ? AND sequence > ? ORDER BY sequence
     `),
@@ -314,17 +365,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
   stmts.pruneOldEvents.run(cutoff);
 
-  function persistEvent(event: AFSEvent): void {
-    stmts.insertEvent.run({
-      type: event.type,
-      timestamp: event.timestamp,
-      sessionId: event.sessionId,
-      sequence: event.sequence,
-      payload: JSON.stringify(event.payload),
-    });
-  }
-
-  return {
+  const store: AFSStore = {
     // Sessions
     createSession(url: string, projectId?: string): Session {
       const session: Session = {
@@ -344,8 +385,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
         metadata: null,
       });
 
-      const event = eventBus.emit("session.created", session.id, session);
-      persistEvent(event);
+      events.record("session.created", session.id, session);
 
       return session;
     },
@@ -375,8 +415,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
       const session = this.getSession(id);
       if (session) {
         const eventType: AFSEventType = status === "closed" ? "session.closed" : "session.updated";
-        const event = eventBus.emit(eventType, id, session);
-        persistEvent(event);
+        events.record(eventType, id, session);
       }
       return session;
     },
@@ -402,13 +441,13 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
         createdAt: new Date().toISOString(),
       };
 
-      // Build extra JSON for structured data (placement/rearrange)
-      let extraJson: string | null = null;
-      if (annotation.placement) {
-        extraJson = JSON.stringify({ placement: annotation.placement });
-      } else if (annotation.rearrange) {
-        extraJson = JSON.stringify({ rearrange: annotation.rearrange });
-      }
+      const extra = {
+        ...(annotation.placement ? { placement: annotation.placement } : {}),
+        ...(annotation.rearrange ? { rearrange: annotation.rearrange } : {}),
+        ...(annotation.attributes ? { attributes: annotation.attributes } : {}),
+        ...(annotation.frame ? { frame: annotation.frame } : {}),
+      };
+      const extraJson = Object.keys(extra).length ? JSON.stringify(extra) : null;
 
       stmts.insertAnnotation.run({
         id: annotation.id,
@@ -430,6 +469,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
         isMultiSelect: annotation.isMultiSelect ? 1 : 0,
         isFixed: annotation.isFixed ? 1 : 0,
         reactComponents: annotation.reactComponents ?? null,
+        sourceFile: annotation.sourceFile ?? null,
         url: annotation.url ?? null,
         intent: annotation.intent ?? null,
         severity: annotation.severity ?? null,
@@ -444,8 +484,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
         extra: extraJson,
       });
 
-      const event = eventBus.emit("annotation.created", sessionId, annotation);
-      persistEvent(event);
+      events.record("annotation.created", sessionId, annotation);
 
       return annotation;
     },
@@ -472,12 +511,20 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
         thread: data.thread ? JSON.stringify(data.thread) : null,
         intent: data.intent ?? null,
         severity: data.severity ?? null,
+        sourceFile: data.sourceFile ?? null,
+        x: data.x ?? null,
+        y: data.y ?? null,
+        extra: data.placement || data.rearrange || data.attributes || data.frame ? JSON.stringify({
+          placement: data.placement ?? existing.placement,
+          rearrange: data.rearrange ?? existing.rearrange,
+          attributes: data.attributes ?? existing.attributes,
+          frame: data.frame ?? existing.frame,
+        }) : null,
       });
 
       const updated = this.getAnnotation(id);
       if (updated && existing.sessionId) {
-        const event = eventBus.emit("annotation.updated", existing.sessionId, updated);
-        persistEvent(event);
+        events.record("annotation.updated", existing.sessionId, updated);
       }
       return updated;
     },
@@ -514,8 +561,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
       const updated = this.updateAnnotation(annotationId, { thread });
 
       if (updated && existing.sessionId) {
-        const event = eventBus.emit("thread.message", existing.sessionId, message);
-        persistEvent(event);
+        events.record("thread.message", existing.sessionId, message);
       }
 
       return updated;
@@ -538,8 +584,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
       stmts.deleteAnnotation.run(id);
 
       if (existing.sessionId) {
-        const event = eventBus.emit("annotation.deleted", existing.sessionId, existing);
-        persistEvent(event);
+        events.record("annotation.deleted", existing.sessionId, existing);
       }
 
       return existing;
@@ -562,6 +607,13 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
       db.close();
     },
   };
+  store.createSession = events.transaction(store.createSession.bind(store));
+  store.updateSessionStatus = events.transaction(store.updateSessionStatus.bind(store));
+  store.addAnnotation = events.transaction(store.addAnnotation.bind(store));
+  store.updateAnnotation = events.transaction(store.updateAnnotation.bind(store));
+  store.addThreadMessage = events.transaction(store.addThreadMessage.bind(store));
+  store.deleteAnnotation = events.transaction(store.deleteAnnotation.bind(store));
+  return store;
 }
 
 // -----------------------------------------------------------------------------
@@ -612,12 +664,9 @@ export function createTenantStore(dbPath?: string): TenantStore {
   // Safe migrations for new columns (no-ops if already exist)
   try { db.exec("ALTER TABLE annotations ADD COLUMN kind TEXT DEFAULT 'feedback'"); } catch {}
   try { db.exec("ALTER TABLE annotations ADD COLUMN extra TEXT"); } catch {}
+  try { db.exec("ALTER TABLE annotations ADD COLUMN source_file TEXT"); } catch {}
 
-  // Restore event sequence from last event
-  const lastEvent = db.prepare("SELECT MAX(sequence) as seq FROM events").get() as { seq: number | null };
-  if (lastEvent?.seq) {
-    eventBus.setSequence(lastEvent.seq);
-  }
+  const events = createEventWriter(db);
 
   // Prepared statements for tenant operations
   const tenantStmts = {
@@ -666,10 +715,6 @@ export function createTenantStore(dbPath?: string): TenantStore {
     `),
 
     // Events
-    insertEvent: db.prepare(`
-      INSERT INTO events (type, timestamp, session_id, sequence, payload, user_id)
-      VALUES (@type, @timestamp, @sessionId, @sequence, @payload, @userId)
-    `),
 
     // Prune old events
     pruneOldEvents: db.prepare(`
@@ -682,18 +727,7 @@ export function createTenantStore(dbPath?: string): TenantStore {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
   tenantStmts.pruneOldEvents.run(cutoff);
 
-  function persistEventForUser(event: AFSEvent, userId: string): void {
-    tenantStmts.insertEvent.run({
-      type: event.type,
-      timestamp: event.timestamp,
-      sessionId: event.sessionId,
-      sequence: event.sequence,
-      payload: JSON.stringify(event.payload),
-      userId,
-    });
-  }
-
-  return {
+  const store: TenantStore = {
     // Organizations
     createOrganization(name: string): Organization {
       const org: Organization = {
@@ -824,8 +858,7 @@ export function createTenantStore(dbPath?: string): TenantStore {
         userId,
       });
 
-      const event = eventBus.emit("session.created", session.id, session);
-      persistEventForUser(event, userId);
+      events.record("session.created", session.id, session, userId);
 
       return session;
     },
@@ -872,4 +905,6 @@ export function createTenantStore(dbPath?: string): TenantStore {
       db.close();
     },
   };
+  store.createSessionForUser = events.transaction(store.createSessionForUser.bind(store));
+  return store;
 }

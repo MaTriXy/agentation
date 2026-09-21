@@ -1,5 +1,7 @@
+import { memo, useLayoutEffect, useRef, useState } from "react";
 import { Annotation } from "../../../types";
 import { IconEdit, IconPlus, IconXmark } from "../../icons";
+import { useExitCompletion } from "../../../hooks/use-exit-completion";
 import styles from "./styles.module.scss";
 
 type MarkerClickBehavior = "edit" | "delete";
@@ -10,6 +12,7 @@ type MarkerClickBehavior = "edit" | "delete";
 
 type AnnotationMarkerProps = {
   annotation: Annotation;
+  pending?: boolean;
   globalIndex: number;
   /** Display index within this layer (for staggered animation delays) */
   layerIndex: number;
@@ -17,72 +20,125 @@ type AnnotationMarkerProps = {
   isExiting: boolean;
   isClearing: boolean;
   isAnimated: boolean;
+  isNew: boolean;
   isHovered: boolean;
-  isDeleting: boolean;
+  isRemoving: boolean;
+  onRemoveComplete: (id: string) => void;
   isEditingAny: boolean;
   renumberFrom: number | null;
   markerClickBehavior: MarkerClickBehavior;
-  tooltipStyle?: React.CSSProperties;
   onHoverEnter: (annotation: Annotation) => void;
-  onHoverLeave: () => void;
-  onClick: (annotation: Annotation) => void;
-  onContextMenu?: (annotation: Annotation) => void;
+  onEnterComplete: (id: string) => void;
+  onHoverLeave: (id: string) => void;
+  onClick: (annotation: Annotation, trigger: HTMLButtonElement) => void;
+  onContextMenu?: (annotation: Annotation, trigger: HTMLButtonElement) => void;
 };
 
-export function AnnotationMarker({
+export const AnnotationMarker = memo(function AnnotationMarker({
   annotation,
+  pending = false,
   globalIndex,
   layerIndex,
   layerSize,
   isExiting,
   isClearing,
   isAnimated,
+  isNew,
   isHovered,
-  isDeleting,
+  isRemoving,
+  onRemoveComplete,
   isEditingAny,
   renumberFrom,
   markerClickBehavior,
-  tooltipStyle,
   onHoverEnter,
+  onEnterComplete,
   onHoverLeave,
   onClick,
   onContextMenu,
 }: AnnotationMarkerProps) {
-  const showDeleteState = (isHovered || isDeleting) && !isEditingAny;
-  const showDeleteHover = showDeleteState && markerClickBehavior === "delete";
+  const [hasEntered, setHasEntered] = useState(isAnimated);
+  const beganPending = useRef(pending);
+  const [hasConfirmed, setHasConfirmed] = useState(false);
+  // Fast submissions finish the entrance already in flight, without restarting it.
+  const confirming = beganPending.current && !pending && hasEntered && !hasConfirmed;
+  useLayoutEffect(() => {
+    if (isExiting) setHasEntered(false);
+  }, [isExiting]);
+  const markerRef = useRef<HTMLButtonElement>(null);
+  const restingContent = useRef({ action: false, delete: false });
+  const action = isHovered && !isEditingAny;
+  const deleteHover = action && markerClickBehavior === "delete";
+  useLayoutEffect(() => {
+    if (!isRemoving) restingContent.current = { action, delete: deleteHover };
+  }, [isRemoving, action, deleteHover]);
+  // Preserve the visible glyph and colour while this same marker leaves.
+  const showAction = isRemoving ? restingContent.current.action : action;
+  const showDeleteHover = isRemoving ? restingContent.current.delete : deleteHover;
+  useExitCompletion(markerRef, isRemoving, () => onRemoveComplete(annotation.id));
   const isMulti = annotation.isMultiSelect;
 
   const markerColor = isMulti
     ? "var(--agentation-color-green)"
     : "var(--agentation-color-accent)";
 
-  const animClass = isExiting
-    ? styles.exit
-    : isClearing
-      ? styles.clearing
-      : !isAnimated
+  const animClass = isClearing
+    ? styles.clearing
+    : isExiting || isRemoving
+      ? styles.exit
+      : confirming
+        ? styles.confirm
+        : !isAnimated && !hasEntered
         ? styles.enter
         : "";
 
-  const animationDelay = isExiting
+  const animationDelay = isClearing
+    ? `${Math.min(layerIndex * 20, 120)}ms`
+    : isRemoving || pending || confirming
+    ? "0ms"
+    : isExiting
     ? `${(layerSize - 1 - layerIndex) * 20}ms`
-    : `${layerIndex * 20}ms`;
+    : `${isNew ? 0 : layerIndex * 20}ms`;
 
   return (
-    <div
-      className={`${styles.marker} ${isMulti ? styles.multiSelect : ""} ${animClass} ${showDeleteHover ? styles.hovered : ""}`}
-      data-annotation-marker
+    <button
+      ref={markerRef}
+      type="button"
+      aria-label={pending ? "Pending annotation" : `${markerClickBehavior === "delete" ? "Delete" : "Edit"} annotation ${globalIndex + 1}: ${annotation.element}`}
+      disabled={pending || isExiting || isRemoving || isClearing}
+      tabIndex={pending || isEditingAny ? -1 : 0}
+      className={`${styles.marker} ${pending ? styles.pending : ""} ${isMulti ? styles.multiSelect : ""} ${animClass} ${!pending && showAction ? styles.actionVisible : ""} ${showDeleteHover ? styles.hovered : ""} ${isHovered && !isEditingAny && !isRemoving ? styles.previewVisible : ""}`}
+      data-annotation-marker={pending ? undefined : ""}
+      data-annotation-pending={pending ? "" : undefined}
       style={{
         left: `${annotation.x}%`,
         top: annotation.y,
         backgroundColor: showDeleteHover ? undefined : markerColor,
         animationDelay,
       }}
-      onMouseEnter={() => onHoverEnter(annotation)}
-      onMouseLeave={onHoverLeave}
+      onAnimationEnd={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (animClass === styles.enter || animClass === styles.confirm) {
+          setHasEntered(true);
+          if (!pending) setHasConfirmed(true);
+          if (!pending) onEnterComplete(annotation.id);
+        }
+      }}
+      // React's synthetic mouseenter can miss entry across a shadow boundary
+      // from another React element. Bubbling mouseover reaches the marker.
+      onMouseOver={() => { if (!pending) onHoverEnter(annotation); }}
+      onMouseOut={(event) => {
+        const next = event.relatedTarget;
+        if (!(next instanceof Node) || !event.currentTarget.contains(next)) {
+          onHoverLeave(annotation.id);
+        }
+      }}
+      onFocus={(event) => {
+        if (!pending && event.currentTarget.matches(":focus-visible")) onHoverEnter(annotation);
+      }}
+      onBlur={() => onHoverLeave(annotation.id)}
       onClick={(e) => {
         e.stopPropagation();
-        if (!isExiting) onClick(annotation);
+        if (!pending && !isExiting && !isRemoving) onClick(annotation, e.currentTarget);
       }}
       onContextMenu={
         onContextMenu
@@ -90,101 +146,27 @@ export function AnnotationMarker({
               if (markerClickBehavior === "delete") {
                 e.preventDefault();
                 e.stopPropagation();
-                if (!isExiting) onContextMenu(annotation);
+                if (!pending && !isExiting && !isRemoving) onContextMenu(annotation, e.currentTarget);
               }
             }
           : undefined
       }
     >
-      {showDeleteState ? (
-        showDeleteHover ? (
+      <span
+        key={globalIndex}
+        className={`${styles.number} ${renumberFrom !== null && globalIndex >= renumberFrom ? styles.renumber : ""}`}
+        aria-hidden="true"
+      >
+        <span className={styles.numberGlyph}>{globalIndex + 1}</span>
+      </span>
+      <span className={styles.actionGlyph} aria-hidden="true">
+        {markerClickBehavior === "delete" ? (
           <IconXmark size={isMulti ? 18 : 16} />
         ) : (
           <IconEdit size={16} />
-        )
-      ) : (
-        <span
-          className={
-            renumberFrom !== null && globalIndex >= renumberFrom
-              ? styles.renumber
-              : undefined
-          }
-        >
-          {globalIndex + 1}
-        </span>
-      )}
-
-      {isHovered && !isEditingAny && (
-        <div
-          className={`${styles.markerTooltip} ${styles.enter}`}
-          style={tooltipStyle}
-        >
-          <span className={styles.markerQuote}>
-            {annotation.element}
-            {annotation.selectedText &&
-              ` "${annotation.selectedText.slice(0, 30)}${annotation.selectedText.length > 30 ? "..." : ""}"`}
-          </span>
-          <span className={styles.markerNote}>{annotation.comment}</span>
-        </div>
-      )}
-    </div>
+        )}
+      </span>
+      {beganPending.current && <span className={styles.plus} aria-hidden="true"><IconPlus size={12} /></span>}
+    </button>
   );
-}
-
-// =============================================================================
-// PendingMarker
-// =============================================================================
-
-type PendingMarkerProps = {
-  x: number;
-  y: number;
-  isMultiSelect?: boolean;
-  isExiting: boolean;
-};
-
-export function PendingMarker({
-  x,
-  y,
-  isMultiSelect,
-  isExiting,
-}: PendingMarkerProps) {
-  return (
-    <div
-      className={`${styles.marker} ${styles.pending} ${isMultiSelect ? styles.multiSelect : ""} ${isExiting ? styles.exit : styles.enter}`}
-      style={{
-        left: `${x}%`,
-        top: y,
-        backgroundColor: isMultiSelect
-          ? "var(--agentation-color-green)"
-          : "var(--agentation-color-accent)",
-      }}
-    >
-      <IconPlus size={12} />
-    </div>
-  );
-}
-
-// =============================================================================
-// ExitingMarker
-// =============================================================================
-
-type ExitingMarkerProps = {
-  annotation: Annotation;
-  fixed?: boolean;
-};
-
-export function ExitingMarker({ annotation, fixed }: ExitingMarkerProps) {
-  const isMulti = annotation.isMultiSelect;
-  return (
-    <div
-      className={`${styles.marker} ${fixed ? styles.fixed : ""} ${styles.hovered} ${isMulti ? styles.multiSelect : ""} ${styles.exit}`}
-      data-annotation-marker
-      style={{
-        left: `${annotation.x}%`,
-        top: annotation.y,
-      }}
-    >
-      <IconXmark size={isMulti ? 12 : 10} />
-    </div>
-  );
-}
+});

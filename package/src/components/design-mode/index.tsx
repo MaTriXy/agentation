@@ -26,7 +26,7 @@ type DesignModeProps = {
   deselectSignal?: number;
   onDragMove?: (dx: number, dy: number) => void;
   onDragEnd?: (dx: number, dy: number, committed: boolean) => void;
-  clearSignal?: number;
+  clearingPlacements?: DesignPlacement[];
   wireframe?: boolean;
 };
 
@@ -139,7 +139,7 @@ export function DesignMode({
   deselectSignal,
   onDragMove,
   onDragEnd,
-  clearSignal,
+  clearingPlacements,
   wireframe,
 }: DesignModeProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -173,28 +173,18 @@ export function DesignMode({
     }
   }, [deselectSignal]);
 
-  // Animate all out when clearSignal fires
-  const clearRef = useRef(clearSignal);
+  // Clear-all removal is owned by the toolbar, which preserves later edits.
   useEffect(() => {
-    if (clearSignal !== undefined && clearSignal !== clearRef.current) {
-      clearRef.current = clearSignal;
-      const allIds = new Set(placementsRef.current.map(p => p.id));
-      if (allIds.size > 0) {
-        setExitingIds(allIds);
-        setSelectedIds(new Set());
-        interactionRef.current = null;
-        originalSetTimeout(() => {
-          onChange([]);
-          setExitingIds(new Set());
-        }, 180);
-      }
+    if (clearingPlacements?.length) {
+      setSelectedIds(previous => new Set([...previous].filter(id => !clearingPlacements.some(p => p.id === id))));
+      interactionRef.current = null;
     }
-  }, [clearSignal, onChange]);
+  }, [clearingPlacements]);
 
   // --- Keyboard: arrow nudge, delete, escape ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
+      const target = (e.composedPath()[0] || e.target) as HTMLElement;
       const isTyping =
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
@@ -692,7 +682,7 @@ export function DesignMode({
             <div
               key={p.id}
               data-design-placement={p.id}
-              className={`${styles.placement} ${isSelected ? styles.selected : ""} ${exitingIds.has(p.id) ? styles.exiting : ""}`}
+              className={`${styles.placement} ${isSelected ? styles.selected : ""} ${exitingIds.has(p.id) || clearingPlacements?.includes(p) ? styles.exiting : ""}`}
               style={{
                 left: p.x,
                 top: screenY,

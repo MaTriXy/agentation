@@ -22,6 +22,12 @@ export type Annotation = {
   isFixed?: boolean; // true if element has fixed/sticky positioning (marker stays fixed)
   reactComponents?: string; // React component hierarchy (e.g. "<App> <Dashboard> <Button>")
   sourceFile?: string; // Source file path from React _debugSource (dev mode only, e.g. "src/Button.tsx:42")
+  attributes?: Record<string, string>; // Explicit identifying attributes captured at selection time
+  frame?: {
+    path: Array<{ index: number; id?: string; url: string }>;
+    x: number; y: number; fixed: boolean;
+    boundingBox: { x: number; y: number; width: number; height: number };
+  };
   drawingIndex?: number; // Index of linked draw stroke (if any)
   elementBoundingBoxes?: Array<{
     x: number;
@@ -106,4 +112,3 @@ export type ThreadMessage = {
   content: string;
   timestamp: number;
 };
-

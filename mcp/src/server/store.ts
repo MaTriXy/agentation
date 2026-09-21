@@ -20,6 +20,7 @@ import type {
   ThreadMessage,
 } from "../types.js";
 import { eventBus } from "./events.js";
+import { integerEnv, MAX_TIMER_MS } from "./config.js";
 
 // -----------------------------------------------------------------------------
 // Store Singleton
@@ -68,6 +69,28 @@ function createMemoryStore(): AFSStore {
   const sessions = new Map<string, Session>();
   const annotations = new Map<string, Annotation>();
   const events: AFSEvent[] = [];
+  const maxEvents = integerEnv("AGENTATION_MAX_EVENTS", 10_000);
+  const maxAgeMs = integerEnv("AGENTATION_EVENT_TTL_MS", 3_600_000);
+  const intervalMs = integerEnv("AGENTATION_CLEANUP_INTERVAL_MS", 300_000, 1, MAX_TIMER_MS);
+
+  function cleanupEvents(): void {
+    const cutoff = Date.now() - maxAgeMs;
+    // Compact once, including after clock changes; don't repeatedly shift an array.
+    let kept = 0;
+    for (const event of events) {
+      if (Date.parse(event.timestamp) > cutoff) events[kept++] = event;
+    }
+    events.length = kept;
+    if (events.length > maxEvents) events.splice(0, events.length - maxEvents);
+  }
+
+  function addEvent(event: AFSEvent): void {
+    events.push(event);
+    if (events.length > maxEvents) cleanupEvents();
+  }
+
+  const cleanupTimer = setInterval(cleanupEvents, intervalMs);
+  cleanupTimer.unref();
 
   function generateId(): string {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -85,7 +108,7 @@ function createMemoryStore(): AFSStore {
       sessions.set(session.id, session);
 
       const event = eventBus.emit("session.created", session.id, session);
-      events.push(event);
+      addEvent(event);
 
       return session;
     },
@@ -117,7 +140,7 @@ function createMemoryStore(): AFSStore {
 
       const eventType = status === "closed" ? "session.closed" : "session.updated";
       const event = eventBus.emit(eventType, id, session);
-      events.push(event);
+      addEvent(event);
 
       return session;
     },
@@ -144,7 +167,7 @@ function createMemoryStore(): AFSStore {
       annotations.set(annotation.id, annotation);
 
       const event = eventBus.emit("annotation.created", sessionId, annotation);
-      events.push(event);
+      addEvent(event);
 
       return annotation;
     },
@@ -164,7 +187,7 @@ function createMemoryStore(): AFSStore {
 
       if (annotation.sessionId) {
         const event = eventBus.emit("annotation.updated", annotation.sessionId, annotation);
-        events.push(event);
+        addEvent(event);
       }
 
       return annotation;
@@ -188,7 +211,7 @@ function createMemoryStore(): AFSStore {
 
       if (annotation.sessionId) {
         const event = eventBus.emit("annotation.updated", annotation.sessionId, annotation);
-        events.push(event);
+        addEvent(event);
       }
 
       return annotation;
@@ -217,7 +240,7 @@ function createMemoryStore(): AFSStore {
 
       if (annotation.sessionId) {
         const event = eventBus.emit("thread.message", annotation.sessionId, message);
-        events.push(event);
+        addEvent(event);
       }
 
       return annotation;
@@ -243,19 +266,21 @@ function createMemoryStore(): AFSStore {
 
       if (annotation.sessionId) {
         const event = eventBus.emit("annotation.deleted", annotation.sessionId, annotation);
-        events.push(event);
+        addEvent(event);
       }
 
       return annotation;
     },
 
     getEventsSince(sessionId: string, sequence: number): AFSEvent[] {
+      cleanupEvents();
       return events.filter(
         (e) => e.sessionId === sessionId && e.sequence > sequence
       );
     },
 
     close(): void {
+      clearInterval(cleanupTimer);
       sessions.clear();
       annotations.clear();
       events.length = 0;
@@ -348,6 +373,6 @@ export function getEventsSince(sessionId: string, sequence: number): AFSEvent[] 
  * Clear all data and reset the store.
  */
 export function clearAll(): void {
-  getStore().close();
+  _store?.close();
   _store = null;
 }

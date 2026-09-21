@@ -18,36 +18,8 @@ const messages = [
   { from: 2, to: 1, label: "201 Created", direction: "left", type: "response" as const },
 ];
 
-const PULSE_COLOR = "#60a5fa";
 const LOOP_INTERVAL = 1400;
 const INITIAL_DELAY = 2000;
-
-const PULSE_CSS = `
-@keyframes webhookPulseLabel {
-  0% { fill: rgba(0,0,0,0.45); }
-  17% { fill: ${PULSE_COLOR}; }
-  50% { fill: ${PULSE_COLOR}; }
-  100% { fill: rgba(0,0,0,0.45); }
-}
-@keyframes webhookPulseActor {
-  0% {
-    border-color: rgba(0,0,0,0.1);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-  17% {
-    border-color: ${PULSE_COLOR}60;
-    box-shadow: 0 0 12px 4px ${PULSE_COLOR}25, 0 0 4px 1px ${PULSE_COLOR}20;
-  }
-  50% {
-    border-color: ${PULSE_COLOR}60;
-    box-shadow: 0 0 12px 4px ${PULSE_COLOR}25, 0 0 4px 1px ${PULSE_COLOR}20;
-  }
-  100% {
-    border-color: rgba(0,0,0,0.1);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-}
-`;
 
 function ActorPill({
   actor,
@@ -80,16 +52,9 @@ function ActorPill({
     >
       <div
         key={isActive ? `active-${pulseKey}` : "inactive"}
+        className="docs-diagram-actor"
         style={{
-          padding: "8px 16px",
-          background: "#fff",
-          border: "1px solid rgba(0,0,0,0.1)",
-          borderRadius: "8px",
-          fontSize: "12px",
-          fontWeight: 600,
-          color: "#1a1a1a",
-          fontFamily: "system-ui, sans-serif",
-          animation: isActive ? `webhookPulseActor ${LOOP_INTERVAL}ms ease-in-out forwards` : "none",
+          animation: isActive ? `docsDiagramActor ${LOOP_INTERVAL}ms ease-in-out forwards` : "none",
         }}
       >
         {actor.label}
@@ -132,7 +97,7 @@ function MessageArrow({
   const endX = toX;
   const midX = (startX + endX) / 2;
 
-  const baseColor = isResponse ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.3)";
+  const baseColor = isResponse ? "var(--diagram-response)" : "var(--diagram-request)";
 
   return (
     <g>
@@ -144,7 +109,7 @@ function MessageArrow({
           x2={endX}
           y2={y}
           stroke={baseColor}
-          strokeWidth={1.5}
+          strokeWidth={1.25}
           strokeDasharray="6 4"
           initial={{ opacity: 0 }}
           animate={isVisible ? { opacity: 1 } : {}}
@@ -157,7 +122,7 @@ function MessageArrow({
           x2={endX}
           y2={y}
           stroke={baseColor}
-          strokeWidth={1.5}
+          strokeWidth={1.25}
           initial={{ pathLength: 0, opacity: 0 }}
           animate={isVisible ? { pathLength: 1, opacity: 1 } : {}}
           transition={{
@@ -176,7 +141,7 @@ function MessageArrow({
         }
         fill="none"
         stroke={baseColor}
-        strokeWidth={1.5}
+        strokeWidth={1.25}
         strokeLinecap="round"
         strokeLinejoin="round"
         initial={{ opacity: 0, pathLength: 0 }}
@@ -213,7 +178,7 @@ function MessageArrow({
           fontSize={10}
           fontFamily="'SF Mono', ui-monospace, monospace"
           style={{
-            animation: `webhookPulseLabel ${LOOP_INTERVAL}ms ease-in-out forwards`,
+            animation: `docsDiagramLabel ${LOOP_INTERVAL}ms ease-in-out forwards`,
             pointerEvents: "none",
           }}
         >
@@ -272,13 +237,13 @@ function Legend({ isVisible }: { isVisible: boolean }) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
         <svg width="24" height="2">
-          <line x1="0" y1="1" x2="24" y2="1" stroke="rgba(0,0,0,0.3)" strokeWidth="1.5" />
+          <line x1="0" y1="1" x2="24" y2="1" stroke="var(--diagram-request)" strokeWidth="1.25" />
         </svg>
         <span>request</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
         <svg width="24" height="2">
-          <line x1="0" y1="1" x2="24" y2="1" stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" strokeDasharray="6 4" />
+          <line x1="0" y1="1" x2="24" y2="1" stroke="var(--diagram-response)" strokeWidth="1.25" strokeDasharray="6 4" />
         </svg>
         <span>response</span>
       </div>
@@ -291,21 +256,6 @@ export function WebhooksDiagram() {
   const isInView = useInView(containerRef, { once: true, margin: "-50px" });
   const [activeMessageIndex, setActiveMessageIndex] = useState(-1);
   const [pulseKey, setPulseKey] = useState(0);
-
-  // Inject CSS
-  useEffect(() => {
-    const styleId = "webhooks-diagram-pulse-css";
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = PULSE_CSS;
-      document.head.appendChild(style);
-    }
-    return () => {
-      const existing = document.getElementById(styleId);
-      if (existing) existing.remove();
-    };
-  }, []);
 
   // Start loop
   useEffect(() => {
@@ -344,17 +294,7 @@ export function WebhooksDiagram() {
   return (
     <div
       ref={containerRef}
-      style={{
-        width: "100%",
-        marginTop: "1.5rem",
-        marginBottom: "1rem",
-        padding: "24px",
-        background: "#fafafa",
-        borderRadius: "12px",
-        border: "1px solid rgba(0,0,0,0.06)",
-        boxSizing: "border-box",
-        overflow: "hidden",
-      }}
+      className="docs-diagram"
     >
       <div
         style={{

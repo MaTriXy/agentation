@@ -129,26 +129,18 @@ type RearrangeOverlayProps = {
   deselectSignal?: number;
   onDragMove?: (dx: number, dy: number) => void;
   onDragEnd?: (dx: number, dy: number, committed: boolean) => void;
-  clearSignal?: number;
+  clearing?: boolean;
 };
 
-export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting, className: extraClassName, blankCanvas, extraSnapRects, onSelectionChange, deselectSignal, onDragMove, onDragEnd, clearSignal }: RearrangeOverlayProps) {
+export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting, className: extraClassName, blankCanvas, extraSnapRects, onSelectionChange, deselectSignal, onDragMove, onDragEnd, clearing }: RearrangeOverlayProps) {
   const { sections } = rearrangeState;
   const rearrangeStateRef = useRef(rearrangeState);
   rearrangeStateRef.current = rearrangeState;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Animate all out when clearSignal fires
-  const [exitingAll, setExitingAll] = useState(false);
-  const clearRef = useRef(clearSignal);
   useEffect(() => {
-    if (clearSignal !== undefined && clearSignal !== clearRef.current) {
-      clearRef.current = clearSignal;
-      if (sections.length > 0) {
-        setExitingAll(true);
-      }
-    }
-  }, [clearSignal, sections.length]);
+    if (clearing) setSelectedIds(new Set());
+  }, [clearing]);
 
   // Clear selection when the other overlay signals deselect
   const deselectRef = useRef(deselectSignal);
@@ -291,8 +283,12 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
   // --- Prevent text selection while rearrange mode is active ---
   useEffect(() => {
     const prev = document.body.style.userSelect;
+    document.body.style.webkitUserSelect = "none";
     document.body.style.userSelect = "none";
-    return () => { document.body.style.userSelect = prev; };
+    return () => {
+      document.body.style.webkitUserSelect = prev;
+      document.body.style.userSelect = prev;
+    };
   }, []);
 
   // --- Mousedown to capture new elements (+ immediate drag) ---
@@ -300,7 +296,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
     const handleMouseDown = (e: MouseEvent) => {
       if (interactionRef.current) return;
       if (e.button !== 0) return;
-      const el = e.target as HTMLElement;
+      const el = (e.composedPath()[0] ?? e.target) as HTMLElement;
       if (!el || el.closest("[data-feedback-toolbar]")) return;
       if (el.closest("[data-design-placement]")) return;
       if (el.closest("[data-annotation-popup]")) return;
@@ -360,7 +356,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
           lastDy = snappedDy;
 
           // Ghost mode: only move outline (ghost preview), not the page element
-          const outlineEl = document.querySelector(`[data-rearrange-section="${section.id}"]`) as HTMLElement | null;
+          const outlineEl = getOverlayRoot().querySelector(`[data-rearrange-section="${section.id}"]`) as HTMLElement | null;
           if (outlineEl) outlineEl.style.transform = `translate(${snappedDx}px, ${snappedDy}px)`;
           // Update live drag position for connector lines
           setDragPositions(new Map([[section.id, { x: startPos.x + snappedDx, y: startPos.y + snappedDy, width: section.currentRect.width, height: section.currentRect.height }]]));
@@ -373,7 +369,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
           interactionRef.current = null;
           setSnapGuides([]);
           setDragPositions(new Map());
-          const outlineEl = document.querySelector(`[data-rearrange-section="${section.id}"]`) as HTMLElement | null;
+          const outlineEl = getOverlayRoot().querySelector(`[data-rearrange-section="${section.id}"]`) as HTMLElement | null;
           if (outlineEl) outlineEl.style.transform = "";
           if (moved) {
 
@@ -425,7 +421,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
   // --- Keyboard: delete, nudge, escape ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
+      const t = (e.composedPath()[0] || e.target) as HTMLElement;
       if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return;
 
       if ((e.key === "Backspace" || e.key === "Delete") && selectedIds.size > 0) {
@@ -515,7 +511,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
       }>();
       for (const s of sections) {
         if (newSelected.has(s.id)) {
-          const outlineEl = document.querySelector(`[data-rearrange-section="${s.id}"]`) as HTMLElement | null;
+          const outlineEl = getOverlayRoot().querySelector(`[data-rearrange-section="${s.id}"]`) as HTMLElement | null;
           dragEls.set(s.id, {
             outlineEl,
             curW: s.currentRect.width, curH: s.currentRect.height,
@@ -637,7 +633,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
       let lastRect = { ...startRect };
 
       // Cache outline for direct updates — ghost mode, no page element transforms
-      const resizeOutlineEl = document.querySelector(`[data-rearrange-section="${id}"]`) as HTMLElement | null;
+      const resizeOutlineEl = getOverlayRoot().querySelector(`[data-rearrange-section="${id}"]`) as HTMLElement | null;
 
       const onMove = (ev: MouseEvent) => {
         const dx = ev.clientX - startX;
@@ -811,9 +807,16 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
     }
   }, [changedKey, sections]);
 
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Resolve at interaction time; first-drag listeners predate the shadow ref.
+  const getOverlayRoot = () =>
+    (overlayRef.current?.getRootNode() as Document | ShadowRoot | undefined) ?? document;
+
   return (
     <>
       <div
+        ref={overlayRef}
         className={`${styles.rearrangeOverlay} ${!isDarkMode ? styles.light : ""} ${exiting ? styles.overlayExiting : ""}${extraClassName ? ` ${extraClassName}` : ""}`}
         data-feedback-toolbar
       >
@@ -836,7 +839,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
             <div
               key={section.id}
               data-rearrange-section={section.id}
-              className={`${styles.sectionOutline} ${isSelected ? styles.selected : ""} ${exitingAll || exiting || exitingIds.has(section.id) ? styles.exiting : ""}`}
+              className={`${styles.sectionOutline} ${isSelected ? styles.selected : ""} ${clearing || exiting || exitingIds.has(section.id) ? styles.exiting : ""}`}
               style={{ left: rect.x, top: screenY, width: rect.width, height: rect.height, borderColor: color.border, backgroundColor: color.bg, ...(outlinesReady ? {} : { opacity: 0, animation: "none", transition: "none" }) }}
               onMouseDown={(e) => handleOutlineMouseDown(e, section.id)}
               onDoubleClick={() => handleDoubleClick(section.id)}
@@ -887,7 +890,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
             <div
               key={section.id}
               data-rearrange-section={section.id}
-              className={`${styles.ghostOutline} ${isSelected ? styles.selected : ""} ${exitingAll || exiting || exitingIds.has(section.id) ? styles.exiting : ""}`}
+              className={`${styles.ghostOutline} ${isSelected ? styles.selected : ""} ${clearing || exiting || exitingIds.has(section.id) ? styles.exiting : ""}`}
               style={{ left: rect.x, top: screenY, width: rect.width, height: rect.height, ...(outlinesReady ? {} : { opacity: 0, animation: "none", transition: "none" }), ...(!isNewGhost ? { animation: "none" } : {}) }}
               onMouseDown={(e) => handleOutlineMouseDown(e, section.id)}
               onDoubleClick={() => handleDoubleClick(section.id)}
@@ -953,7 +956,7 @@ export function RearrangeOverlay({ rearrangeState, onChange, isDarkMode, exiting
         if (connectorSections.length === 0) return null;
 
         return (
-          <svg className={`${styles.connectorSvg} ${exitingAll || exiting ? styles.connectorExiting : ""}`}>
+          <svg className={`${styles.connectorSvg} ${clearing || exiting ? styles.connectorExiting : ""}`}>
             {connectorSections.map(({ id, orig, target, isFixed, isSelected, isExiting }) => {
               const ox = orig.x + orig.width / 2;
               const oy = (isFixed ? orig.y : orig.y - scrollY) + orig.height / 2;
