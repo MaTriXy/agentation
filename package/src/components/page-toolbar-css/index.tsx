@@ -467,10 +467,14 @@ function PageFeedbackToolbarForRoute({
   const scopeSession = (session: Awaited<ReturnType<typeof getSession>>) =>
     useHashLocation ? { ...session, annotations: session.annotations.filter(a =>
       !deletedIds.current.has(a.id) && matchesPage(a.url || session.url, pathname, window.location.origin)) } : session;
+  const latestPathname = useRef(pathname);
+  latestPathname.current = pathname;
   const applySessionFeedback = (before: Annotation[], incoming: Annotation[], sessionId: string, pagePath = pathname) => {
     const merged = mergeSessionFeedback(before, loadAnnotations<Annotation>(pagePath), incoming, serverIds.current)
       .filter(keepFeedback);
-    if (pagePath === pathname && routeAlive.current) setAnnotations(merged);
+    // A response for a page the host has since navigated away from must not
+    // become the new page's notes.
+    if (pagePath === latestPathname.current && routeAlive.current) setAnnotations(merged);
     saveAnnotationsWithSyncMarker(pagePath, merged, sessionId);
   };
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -2912,7 +2916,13 @@ function PageFeedbackToolbarForRoute({
   const clearAll = useCallback(() => {
     if (!routeAlive.current) return;
     // A delayed copy/send completion owns only its original, unchanged notes.
-    const batch = annotations.filter(a => currentAnnotationsRef.current.includes(a) && !deletedIds.current.has(a.id));
+    // Match by ID (or the local ID a server ID replaced) and comment rather than
+    // object identity: server ID swaps and session merges recreate objects.
+    const original = new Map(currentAnnotationsRef.current.map(a => [a.id, a]));
+    const batch = annotations.filter(a => {
+      const before = original.get(a.id) ?? original.get(markerKeys.current.get(a.id) ?? "");
+      return !!before && before.comment === a.comment && !deletedIds.current.has(a.id);
+    });
     const count = batch.length;
     const currentLayout = layoutSnapshot.current;
     const placements = designPlacements.filter(p => currentLayout.designPlacements.includes(p) && !clearingLayout.current.placements.includes(p));
@@ -3673,8 +3683,8 @@ function PageFeedbackToolbarForRoute({
   if (isToolbarHidden) return null;
 
   return (
-    <ShadowRoot host="agentation-toolbar" className={userClassName} style={{ display: "contents" }}>
-      <style>{shadowCss}{agentationColorTokensCss}</style>
+    <ShadowRoot host="agentation-toolbar" className={userClassName}>
+      <style data-agentation-styles="toolbar">{shadowCss}{agentationColorTokensCss}</style>
       <div ref={portalWrapperRef} className={styles.positionContext} style={{ display: "contents" }} data-agentation-theme={isDarkMode ? "dark" : "light"} data-agentation-accent={settings.annotationColorId} data-agentation-root="">
           {/* Toolbar */}
           <div

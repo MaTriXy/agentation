@@ -70,16 +70,21 @@ test('restricted CORS covers global and per-session event streams', async t => {
     controller.abort();
   }
 });
-test('default wildcard is preserved and origin-free local clients still work', async t => {
+test('default policy allows dev-server origins, rejects public ones and keeps origin-free clients', async t => {
   const base = await server(t, null);
-  const response = await request(base, '/health', {headers:{Origin:'https://anything.test'}});
-  assert.equal(response.headers.get('access-control-allow-origin'), '*');
-  const restricted = await server(t, 'https://app.example.test');
-  const local = await fetch(restricted + '/health');
-  assert.equal(local.status, 200);
-  assert.equal(local.headers.get('access-control-allow-origin'), null);
+  for (const origin of ['http://localhost:3000', 'http://myapp.localhost:1355', 'http://127.0.0.1:5173', 'http://192.168.1.20:3000', 'https://app.test']) {
+    const ok = await fetch(base + '/sessions', { headers: { Origin: origin } });
+    assert.equal(ok.status, 200, origin);
+    assert.equal(ok.headers.get('access-control-allow-origin'), origin);
+    await ok.text();
+  }
+  for (const origin of ['https://evil.example', 'null', 'http://example.com']) {
+    const denied = await fetch(base + '/sessions', { headers: { Origin: origin } });
+    assert.equal(denied.status, 403, origin); await denied.text();
+  }
+  const bare = await fetch(base + '/sessions');
+  assert.equal(bare.status, 200); assert.equal(bare.headers.get('access-control-allow-origin'), null); await bare.text();
 });
-
 test('MCP initialize and session deletion retain the same CORS policy', async t => {
   const base = await server(t);
   const response = await request(base, '/mcp', {
@@ -141,4 +146,16 @@ test('CORS remains local when JSON and SSE are proxied to cloud', async t => {
     assert.equal(response.headers.get('access-control-allow-origin'), 'https://app.example.test');
     await response.text();
   }
+});
+
+test('loopback-only default rejects foreign Host headers and keeps local ones', async t => {
+  const base = await server(t, null);
+  const port = new URL(base).port;
+  // fetch() does not forward a custom Host header, so use node:http directly.
+  const status = host => new Promise((resolve, reject) => {
+    const req = require('node:http').request({ host: '127.0.0.1', port, path: '/health', headers: { Host: host } }, res => { res.resume(); res.on('end', () => resolve(res.statusCode)); });
+    req.on('error', reject); req.end();
+  });
+  for (const host of [`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`, `myapp.localhost:${port}`]) assert.equal(await status(host), 200, host);
+  for (const host of ['evil.example', `evil.example:${port}`, '10.0.0.5:4747']) assert.equal(await status(host), 403, host);
 });

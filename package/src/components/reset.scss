@@ -21,7 +21,31 @@
  */
 
 :host {
-  line-height: 1.5; /* 1 */
+  /* Inherited properties cross the shadow boundary, so a host page's
+     text-transform, letter-spacing or font would otherwise restyle the UI. */
+  font: 400 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-variant: normal;
+  color: initial;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-align: start;
+  text-indent: 0;
+  text-shadow: none;
+  white-space: normal;
+  direction: ltr;
+  writing-mode: horizontal-tb;
+  hyphens: manual;
+  word-break: normal;
+  overflow-wrap: normal;
+  tab-size: 8;
+  list-style: none;
+  quotes: initial;
+  caret-color: auto;
+  user-select: auto;
+  -webkit-text-fill-color: initial;
+  -webkit-text-stroke: 0;
+  text-rendering: auto;
   -webkit-text-size-adjust: 100%; /* 2 */
   -webkit-tap-highlight-color: transparent; /* 3 */
   font-feature-settings: "kern"; /* 4 */

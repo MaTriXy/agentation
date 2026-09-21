@@ -17,7 +17,10 @@ export function useFeedbackPortal(container?: HTMLElement | ShadowRoot | null) {
     const target = container ?? document.body;
     // Coordinate calculations belong to this document. Iframe selection is
     // handled by the picker, not by mounting the toolbar into another window.
-    if (target.ownerDocument !== document) return;
+    if (target.ownerDocument !== document) {
+      console.warn("[Agentation] portalContainer belongs to another document; the toolbar will not render.");
+      return;
+    }
     let focused = document.activeElement;
     while (focused?.shadowRoot?.activeElement) focused = focused.shadowRoot.activeElement;
     const restoreFocus =

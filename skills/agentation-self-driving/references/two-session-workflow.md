@@ -57,4 +57,4 @@ Annotation dialog      →   Fills critique, clicks Add
 - Start the Fixer session first so it's ready when annotations arrive
 - The Critic can add annotations faster than the Fixer processes them — that's fine, they queue up
 - If the page hot-reloads from Fixer's changes, the Critic may need to re-expand the toolbar
-- Both sessions share the same MCP server via `.mcp.json` in the project
+- Both sessions share the same MCP server registered with `claude mcp add` (stored in `~/.claude.json`)

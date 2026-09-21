@@ -169,10 +169,10 @@ async function runDoctor() {
   // Check 1: Node version
   const nodeVersion = process.version;
   const majorVersion = parseInt(nodeVersion.slice(1).split(".")[0], 10);
-  if (majorVersion >= 18) {
-    results.push({ name: "Node.js", status: "pass", message: `${nodeVersion} (18+ required)` });
+  if (majorVersion >= 20) {
+    results.push({ name: "Node.js", status: "pass", message: `${nodeVersion} (20+ required)` });
   } else {
-    results.push({ name: "Node.js", status: "fail", message: `${nodeVersion} (18+ required)` });
+    results.push({ name: "Node.js", status: "fail", message: `${nodeVersion} (20+ required)` });
     allPassed = false;
   }
 
@@ -199,14 +199,24 @@ async function runDoctor() {
       if (found) {
         results.push({ name: "Claude Code config", status: "pass", message: "MCP server configured" });
       } else {
-        results.push({ name: "Claude Code config", status: "warn", message: "Config exists but no agentation MCP entry. Run: claude mcp add agentation -- npx agentation-mcp server" });
+        results.push({ name: "Claude Code config", status: "warn", message: "Config exists but no agentation MCP entry. Run: claude mcp add agentation -- npx -y agentation-mcp server" });
       }
     } catch {
       results.push({ name: "Claude Code config", status: "fail", message: "Could not parse config file" });
       allPassed = false;
     }
   } else {
-    results.push({ name: "Claude Code config", status: "warn", message: "No config found at ~/.claude.json. Run: claude mcp add agentation -- npx agentation-mcp server" });
+    results.push({ name: "Claude Code config", status: "warn", message: "No config found at ~/.claude.json. Run: claude mcp add agentation -- npx -y agentation-mcp server" });
+  }
+
+  // Check 2b: SQLite availability (the server otherwise falls back to memory)
+  try {
+    const sqlite = await import("better-sqlite3");
+    const Database = (sqlite.default ?? sqlite) as unknown as new (path: string) => { close(): void };
+    new Database(":memory:").close();
+    results.push({ name: "Storage", status: "pass", message: "SQLite available (annotations persist in ~/.agentation/store.db)" });
+  } catch (error) {
+    results.push({ name: "Storage", status: "warn", message: `SQLite unavailable (${error instanceof Error ? error.message.split("\n")[0] : String(error)}). The server keeps annotations in memory only; reinstall agentation-mcp for this Node.js version.` });
   }
 
   // Check 3: Stale config at old (wrong) path
@@ -267,6 +277,7 @@ if (command === "init") {
     let mcpOnly = false;
     let httpUrl = "http://localhost:4747";
     let apiKeyArg: string | undefined;
+    let host: string | undefined = process.env.AGENTATION_HOST?.trim() || undefined;
 
     for (let i = 0; i < args.length; i++) {
       if (args[i] === "--port" && args[i + 1]) {
@@ -277,6 +288,10 @@ if (command === "init") {
             httpUrl = `http://localhost:${port}`;
           }
         }
+        i++;
+      }
+      if (args[i] === "--host" && args[i + 1]) {
+        host = args[i + 1];
         i++;
       }
       if (args[i] === "--mcp-only") {
@@ -299,7 +314,7 @@ if (command === "init") {
     }
 
     if (!mcpOnly) {
-      startHttpServer(port, apiKey);
+      startHttpServer(port, apiKey, { host });
     }
     startMcpServer(httpUrl).catch((err) => {
       console.error("MCP server error:", err);
@@ -321,6 +336,7 @@ Server Options:
   --mcp-only         Skip HTTP server, only run MCP on stdio
   --http-url <url>   HTTP server URL for MCP to fetch from
   --api-key <key>    API key for cloud storage (or set AGENTATION_API_KEY env var)
+  --host <address>   Interface to bind (default: loopback only; or set AGENTATION_HOST)
 
 Commands:
   init      Guided setup that configures Claude Code to use the MCP server.

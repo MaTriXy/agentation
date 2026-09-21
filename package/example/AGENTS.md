@@ -1,6 +1,6 @@
 # Agentation Website
 
-Demo site and documentation at agentation.dev.
+Demo site and documentation at agentation.com.
 
 ## Safe but Important
 

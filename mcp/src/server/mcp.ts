@@ -131,7 +131,7 @@ const WatchAnnotationsSchema = z.object({
 export const TOOLS = [
   {
     name: "agentation_list_sessions",
-    description: "List all active annotation sessions",
+    description: "List all annotation sessions",
     inputSchema: {
       type: "object" as const,
       properties: {},
