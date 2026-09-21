@@ -37,7 +37,7 @@ const releases: Release[] = [
       { type: "added", text: <>A <a href="/api#host-overlays" className="styled-link">portalContainer prop</a> for integrating with host modals and popovers.</> },
       { type: "added", text: <>Selection inside <a href="/api#embedded-pages" className="styled-link">same-origin iframes</a>, including nested frames, scaling, scrolling and navigation.</> },
       { type: "added", text: <>Opt-in <a href="/api#routing-and-shortcuts" className="styled-link">hash routing</a> keeps feedback, layout state and MCP sessions separate by route. Global keyboard shortcuts can be disabled without disabling toolbar buttons or popup Enter/Escape.</> },
-      { type: "improved", text: "The toolbar is isolated from host page styles using Shadow DOM. Importing Agentation no longer changes page styles or timers." },
+      { type: "improved", text: "Toolbar styles now render inside Shadow DOM. Importing Agentation no longer changes page styles or timers." },
       { type: "improved", text: "Deep selection through overlays and open shadow roots works with Cmd/Ctrl-click and drag multiselect. Legacy Cmd+Shift-click remains supported." },
       { type: "improved", text: "Accessible control names, native keyboard activation and focus return. Single-key shortcuts leave the page alone while Agentation is closed." },
       { type: "improved", text: "The toolbar icon morphs between open and closed states. Settings and Layout panels share consistent entrance and exit motion." },
