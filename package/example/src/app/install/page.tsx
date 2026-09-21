@@ -75,10 +75,10 @@ function App() {
           </DocNote>
 
           <ul className="docs-list-note">
-            <li><strong>Local-first</strong> &mdash; Works offline, syncs when server is available</li>
-            <li><strong>Session continuity</strong> &mdash; Rejoins the same session on page refresh</li>
-            <li><strong>No duplicates</strong> &mdash; Only new annotations are uploaded; existing ones are skipped</li>
-            <li><strong>Server authority</strong> &mdash; Agent changes (resolve, dismiss) take precedence on rejoin</li>
+            <li><strong>Local-first</strong>: Works offline, syncs when server is available</li>
+            <li><strong>Session continuity</strong>: Rejoins the same session on page refresh</li>
+            <li><strong>No duplicates</strong>: Only new annotations are uploaded; existing ones are skipped</li>
+            <li><strong>Server authority</strong>: Agent changes (resolve, dismiss) take precedence on rejoin</li>
           </ul>
 
           <Callout><p>Using Claude Code? The optional <code>/agentation</code> skill can set up the React component for you. Install it with <code>npx skills add benjitaylor/agentation</code>, then run <code>/agentation</code> in Claude Code.</p></Callout>
@@ -87,17 +87,17 @@ function App() {
         <DocAside title="Requirements">
           <ul>
             <li>
-              <strong>React 18+</strong> &mdash; Uses modern React features
+              <strong>React 18+</strong>: Uses modern React features
             </li>
             <li>
-              <strong>Client-side only</strong> &mdash; Requires DOM access
+              <strong>Client-side only</strong>: Requires DOM access
             </li>
             <li>
-              <strong>Desktop only</strong> &mdash; Not optimized for mobile
+              <strong>Desktop only</strong>: Not optimized for mobile
               devices
             </li>
             <li>
-              <strong>Zero dependencies</strong> &mdash; No runtime deps beyond
+              <strong>Zero dependencies</strong>: No runtime deps beyond
               React
             </li>
           </ul>
@@ -116,17 +116,17 @@ function App() {
           </p>
           <ul>
             <li>
-              <strong>No external requests</strong> &mdash; all processing is
+              <strong>No external requests</strong>: all processing is
               client-side by default
             </li>
             <li>
-              <strong>Your configured endpoint</strong> &mdash; annotations are sent to the server you choose. Use a localhost endpoint for a local workflow
+              <strong>Your configured endpoint</strong>: annotations are sent to the server you choose. Use a localhost endpoint for a local workflow
             </li>
             <li>
-              <strong>Optional integrations</strong> &mdash; configured webhooks and callbacks can send feedback to other services
+              <strong>Optional integrations</strong>: configured webhooks and callbacks can send feedback to other services
             </li>
             <li>
-              <strong>Dev-only</strong> &mdash; use the <code>NODE_ENV</code>{" "}
+              <strong>Dev-only</strong>: use the <code>NODE_ENV</code>{" "}
               check to exclude from production
             </li>
           </ul>

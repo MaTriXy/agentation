@@ -301,14 +301,14 @@ curl -N -H "Last-Event-ID: 42" http://localhost:4747/sessions/:id/events`}
           />
           <h3>Event types</h3>
           <ul className="docs-list-note">
-            <li><code>annotation.created</code> &mdash; New annotation added (includes <code>kind</code> field for design annotations)</li>
-            <li><code>annotation.updated</code> &mdash; Annotation modified (comment, status, design data, etc.)</li>
-            <li><code>annotation.deleted</code> &mdash; Annotation removed</li>
-            <li><code>session.created</code> &mdash; New session started</li>
-            <li><code>session.updated</code> &mdash; Session updated</li>
-            <li><code>session.closed</code> &mdash; Session closed</li>
-            <li><code>action.requested</code> &mdash; Agent action requested</li>
-            <li><code>thread.message</code> &mdash; New message in annotation thread</li>
+            <li><code>annotation.created</code>: New annotation added (includes <code>kind</code> field for design annotations)</li>
+            <li><code>annotation.updated</code>: Annotation modified (comment, status, design data, etc.)</li>
+            <li><code>annotation.deleted</code>: Annotation removed</li>
+            <li><code>session.created</code>: New session started</li>
+            <li><code>session.updated</code>: Session updated</li>
+            <li><code>session.closed</code>: Session closed</li>
+            <li><code>action.requested</code>: Agent action requested</li>
+            <li><code>thread.message</code>: New message in annotation thread</li>
           </ul>
         </section>
 

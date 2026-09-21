@@ -251,10 +251,10 @@ export default function AgentationDocs() {
             With <a href="/mcp">MCP integration</a> and the <a href="/schema">Annotation Format Schema</a>, agents don&rsquo;t just read your annotations &mdash; they can respond to them:
           </p>
           <ul>
-            <li><strong>&ldquo;What annotations do I have?&rdquo;</strong> &mdash; List all feedback across pages</li>
-            <li><strong>&ldquo;Should this be 24px or 16px?&rdquo;</strong> &mdash; Agent asks for clarification</li>
-            <li><strong>&ldquo;Fixed the padding&rdquo;</strong> &mdash; Agent resolves with a summary</li>
-            <li><strong>&ldquo;Clear all annotations&rdquo;</strong> &mdash; Dismiss everything at once</li>
+            <li><strong>&ldquo;What annotations do I have?&rdquo;</strong>: List all feedback across pages</li>
+            <li><strong>&ldquo;Should this be 24px or 16px?&rdquo;</strong>: Agent asks for clarification</li>
+            <li><strong>&ldquo;Fixed the padding&rdquo;</strong>: Agent resolves with a summary</li>
+            <li><strong>&ldquo;Clear all annotations&rdquo;</strong>: Dismiss everything at once</li>
           </ul>
           <p>
             Follow-up questions and resolutions stay attached to the original annotation.
@@ -264,11 +264,11 @@ export default function AgentationDocs() {
         <section>
           <h2>Best practices</h2>
           <ul>
-            <li><strong>Be specific</strong> &mdash; &ldquo;Button text unclear&rdquo; is better than &ldquo;fix this&rdquo;</li>
-            <li><strong>One issue per annotation</strong> &mdash; easier for the agent to address individually</li>
-            <li><strong>Include context</strong> &mdash; mention what you expected vs. what you see</li>
-            <li><strong>Use text selection</strong> &mdash; for typos or content issues, select the exact text</li>
-            <li><strong>Pause animations</strong> &mdash; to annotate a specific animation frame</li>
+            <li><strong>Be specific</strong>: &ldquo;Button text unclear&rdquo; is better than &ldquo;fix this&rdquo;</li>
+            <li><strong>One issue per annotation</strong>: easier for the agent to address individually</li>
+            <li><strong>Include context</strong>: mention what you expected vs. what you see</li>
+            <li><strong>Use text selection</strong>: for typos or content issues, select the exact text</li>
+            <li><strong>Pause animations</strong>: to annotate a specific animation frame</li>
           </ul>
         </section>
 

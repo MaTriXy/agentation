@@ -77,10 +77,10 @@ export default function FeaturesPage() {
           Toggle React detection on/off in settings. The detection mode adapts automatically based on your output format:
         </p>
         <ul>
-          <li><strong>Compact</strong> &mdash; No React data (keeps output minimal)</li>
-          <li><strong>Standard</strong> &mdash; Filtered &mdash; shows user components, hides framework internals</li>
-          <li><strong>Detailed</strong> &mdash; Smart &mdash; only components that correlate with CSS class names</li>
-          <li><strong>Forensic</strong> &mdash; All &mdash; every component including framework internals</li>
+          <li><strong>Compact</strong>: No React data, so output stays minimal</li>
+          <li><strong>Standard</strong>: User components only, with framework internals hidden</li>
+          <li><strong>Detailed</strong>: Only components that correlate with CSS class names</li>
+          <li><strong>Forensic</strong>: Every component, including framework internals</li>
         </ul>
       </section>
 
@@ -90,10 +90,10 @@ export default function FeaturesPage() {
           Press <code>L</code> to enter layout mode. A component palette appears with 65+ types you can drag onto the page. You can also grab existing sections and reposition them. Changes sync to connected agents via MCP in real time.
         </p>
         <ul>
-          <li><strong>Place components</strong> – Drag from the palette to add new elements</li>
-          <li><strong>Rearrange sections</strong> – Grab and drag existing elements into position</li>
-          <li><strong>Wireframe new page</strong> – Toggle wireframe mode to fade out the current page and sketch a layout from scratch, with an opacity slider and a purpose field for context</li>
-          <li><strong>Agent sync</strong> – Changes appear as annotations with <code>kind: &quot;placement&quot;</code> or <code>kind: &quot;rearrange&quot;</code></li>
+          <li><strong>Place components</strong>: Drag from the palette to add new elements</li>
+          <li><strong>Rearrange sections</strong>: Grab and drag existing elements into position</li>
+          <li><strong>Wireframe new page</strong>: Toggle wireframe mode to fade out the current page and sketch a layout from scratch, with an opacity slider and a purpose field for context</li>
+          <li><strong>Agent sync</strong>: Changes appear as annotations with <code>kind: &quot;placement&quot;</code> or <code>kind: &quot;rearrange&quot;</code></li>
         </ul>
         <DocNote>
           Placements are spatial hints, not pixel-perfect specs. The agent receives component type, approximate position, and size relative to the viewport, then translates that into real CSS. Results will vary depending on the agent and your codebase.
@@ -171,11 +171,11 @@ export default function FeaturesPage() {
 
       <DocAside title="Limitations">
         <ul>
-          <li><strong>Desktop only</strong> &mdash; requires a desktop browser</li>
-          <li><strong>Per-page storage</strong> &mdash; localStorage persists 7 days. Hash-based routes can opt into separate storage. Use the <a href="/install#agent-integration">MCP server</a> to share feedback with your agent.</li>
-          <li><strong>Layout changes</strong> &mdash; same-origin single-element frame markers track child scrolling. Arbitrary page reflows and saved group geometry are not continuously tracked.</li>
-          <li><strong>No screenshots</strong> &mdash; output is text-only</li>
-          <li><strong>Animation pause</strong> &mdash; freezes most animations and videos on the page. Some third-party animation libraries may not fully pause.</li>
+          <li><strong>Desktop only</strong>: requires a desktop browser</li>
+          <li><strong>Per-page storage</strong>: localStorage persists 7 days. Hash-based routes can opt into separate storage. Use the <a href="/install#agent-integration">MCP server</a> to share feedback with your agent.</li>
+          <li><strong>Layout changes</strong>: same-origin single-element frame markers track child scrolling. Arbitrary page reflows and saved group geometry are not continuously tracked.</li>
+          <li><strong>No screenshots</strong>: output is text-only</li>
+          <li><strong>Animation pause</strong>: freezes most animations and videos on the page. Some third-party animation libraries may not fully pause.</li>
           <li><strong>React 18+ only</strong></li>
         </ul>
       </DocAside>

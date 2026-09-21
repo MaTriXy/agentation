@@ -58,11 +58,11 @@ function App() {
             Webhooks fire for the following events:
           </p>
           <ul className="docs-list-note">
-            <li><code>annotation.add</code> &mdash; New annotation created</li>
-            <li><code>annotation.delete</code> &mdash; Annotation deleted</li>
-            <li><code>annotation.update</code> &mdash; Annotation comment edited</li>
-            <li><code>annotations.clear</code> &mdash; All annotations cleared</li>
-            <li><code>submit</code> &mdash; &quot;Send Annotations&quot; clicked</li>
+            <li><code>annotation.add</code>: New annotation created</li>
+            <li><code>annotation.delete</code>: Annotation deleted</li>
+            <li><code>annotation.update</code>: Annotation comment edited</li>
+            <li><code>annotations.clear</code>: All annotations cleared</li>
+            <li><code>submit</code>: &quot;Send Annotations&quot; clicked</li>
           </ul>
         </section>
 
@@ -226,16 +226,16 @@ app.post("/webhook/agentation", (req, res) => {
         <DocAside title="Security considerations" id="security">
           <ul>
             <li>
-              <strong>Use HTTPS</strong> &mdash; Always use encrypted connections for webhook URLs
+              <strong>Use HTTPS</strong>: Always use encrypted connections for webhook URLs
             </li>
             <li>
-              <strong>Validate origin</strong> &mdash; Check the request origin if your webhook is public
+              <strong>Validate origin</strong>: Check the request origin if your webhook is public
             </li>
             <li>
-              <strong>Rate limiting</strong> &mdash; Implement rate limits to prevent abuse
+              <strong>Rate limiting</strong>: Implement rate limits to prevent abuse
             </li>
             <li>
-              <strong>Sanitize content</strong> &mdash; Annotation comments may contain user-generated content; sanitize before rendering
+              <strong>Sanitize content</strong>: Annotation comments may contain user-generated content; sanitize before rendering
             </li>
           </ul>
         </DocAside>
@@ -247,13 +247,13 @@ app.post("/webhook/agentation", (req, res) => {
           </p>
           <ul className="docs-list-note">
             <li>
-              <strong>webhook.site</strong> &mdash; Free public endpoint for testing payloads
+              <strong>webhook.site</strong>: Free public endpoint for testing payloads
             </li>
             <li>
-              <strong>ngrok</strong> &mdash; Expose local server for testing with real URLs
+              <strong>ngrok</strong>: Expose local server for testing with real URLs
             </li>
             <li>
-              <strong>RequestBin</strong> &mdash; Inspect and debug webhook payloads
+              <strong>RequestBin</strong>: Inspect and debug webhook payloads
             </li>
           </ul>
 

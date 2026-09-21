@@ -227,12 +227,12 @@ npx agentation-mcp help      # Show help`}
           </p>
           <ol>
             <li>Agent calls <code>agentation_watch_annotations</code> (blocks until annotations appear)</li>
-            <li>Annotations arrive &mdash; agent receives batch after collection window</li>
+            <li>Annotations arrive, and the agent receives the batch after the collection window</li>
             <li>Agent processes each annotation:
               <ul>
-                <li><code>agentation_acknowledge</code> &mdash; mark as seen</li>
+                <li><code>agentation_acknowledge</code>: mark as seen</li>
                 <li>Make code changes and verify the result, including a browser check for visual feedback</li>
-                <li><code>agentation_resolve</code> &mdash; mark verified work as done (annotation disappears from browser)</li>
+                <li><code>agentation_resolve</code>: mark verified work as done (annotation disappears from browser)</li>
               </ul>
             </li>
             <li>Agent calls <code>agentation_watch_annotations</code> again (loop)</li>
@@ -296,7 +296,7 @@ Continue watching until I say stop or timeout is reached.`}
             <li>Agent opens a headed browser to your page</li>
             <li>Scrolls to an element, adds a critique annotation (visible in the toolbar)</li>
             <li>Reads the relevant source code and edits it to fix the issue</li>
-            <li>Calls <code>agentation_resolve</code> &mdash; annotation disappears from the browser</li>
+            <li>Calls <code>agentation_resolve</code>: annotation disappears from the browser</li>
             <li>Verifies the fix in the browser (if a dev server is running)</li>
             <li>Moves to the next element, repeats</li>
           </ol>
