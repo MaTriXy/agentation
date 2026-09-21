@@ -173,6 +173,8 @@
 // =============================================================================
 
 :host {
+  /* Set here rather than inline so a consumer className rule can still hide the toolbar. */
+  display: contents;
   position: fixed;
   top: auto;
   left: auto;

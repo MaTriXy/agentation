@@ -847,7 +847,7 @@ export function DesignPalette({
         <div className={styles.paletteHeaderTitle}>Layout Mode</div>
         <div className={styles.paletteHeaderDesc}>
           Rearrange and resize existing elements, add new components, and explore layout ideas. Agent results may vary.{" "}
-          <a href="https://agentation.dev/features#layout-mode" target="_blank" rel="noopener noreferrer">Learn more.</a>
+          <a href="https://agentation.com/features#layout-mode" target="_blank" rel="noopener noreferrer">Learn more.</a>
         </div>
       </div>
 

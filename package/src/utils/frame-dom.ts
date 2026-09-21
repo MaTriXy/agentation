@@ -27,14 +27,30 @@ export function frameGeometry(frame: HTMLIFrameElement) {
   const rect = frame.getBoundingClientRect();
   const sx = frame.offsetWidth ? rect.width / frame.offsetWidth : 1;
   const sy = frame.offsetHeight ? rect.height / frame.offsetHeight : 1;
+  // clientLeft/Top cover borders; padding also offsets the frame's viewport.
+  const style = frame.ownerDocument.defaultView?.getComputedStyle(frame);
+  const padding = (value?: string) => parseFloat(value || "0") || 0;
+  const left = padding(style?.paddingLeft), top = padding(style?.paddingTop);
+  const width = frame.clientWidth - left - padding(style?.paddingRight);
+  const height = frame.clientHeight - top - padding(style?.paddingBottom);
   return {
-    x: rect.left + frame.clientLeft * sx,
-    y: rect.top + frame.clientTop * sy,
+    x: rect.left + (frame.clientLeft + left) * sx,
+    y: rect.top + (frame.clientTop + top) * sy,
     sx,
     sy,
-    width: frame.clientWidth * sx,
-    height: frame.clientHeight * sy,
+    width: width * sx,
+    height: height * sy,
   };
+}
+
+/** Frames are matched by origin and pathname so in-frame hash or query changes keep their notes. */
+export function frameLocationKey(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.origin + parsed.pathname;
+  } catch {
+    return url;
+  }
 }
 
 export function viewportPoint(doc: Document, x: number, y: number, root: Document = document): { x: number; y: number } {
@@ -156,7 +172,7 @@ export function projectFrameAnnotation<T extends FrameAnnotation>(
     const frames = lookup(doc);
     const frame = entry.id ? frames.find((frame) => frame.id === entry.id) : frames[entry.index];
     const child = frame && frameDocument(frame);
-    if (!child || child.URL !== entry.url) return null;
+    if (!child || frameLocationKey(child.URL) !== frameLocationKey(entry.url)) return null;
     doc = child;
   }
   const win = doc.defaultView!;

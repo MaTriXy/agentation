@@ -65,9 +65,9 @@ Without `endpoint`, the toolbar saves feedback locally for manual copying.
 ### 4. Verify browser-to-agent delivery
 
 ```bash
-agentation-mcp doctor
+npx agentation-mcp doctor
 # Custom server:
-agentation-mcp doctor --http-url http://localhost:4747
+npx agentation-mcp doctor --http-url http://localhost:4747
 ```
 
 Doctor checks services, not browser delivery. Add one test annotation in the app,
@@ -90,6 +90,7 @@ agentation-mcp help                    # Show help
 --port <port>      # HTTP server port (default: 4747)
 --mcp-only         # Skip HTTP server, only run MCP on stdio
 --http-url <url>   # HTTP server URL for MCP to fetch from
+--host <address>   # Interface to bind (default: loopback only)
 ```
 
 ## MCP Tools
@@ -173,7 +174,8 @@ export AGENTATION_WEBHOOKS=https://server1.com/hook,https://server2.com/hook
 | `AGENTATION_WEBHOOK_URL` | Single webhook URL | - |
 | `AGENTATION_WEBHOOKS` | Comma-separated webhook URLs | - |
 | `AGENTATION_EVENT_RETENTION_DAYS` | Days to keep SQLite events | `7` |
-| `AGENTATION_CORS_ORIGINS` | Allowed browser origins; see below | `*` |
+| `AGENTATION_CORS_ORIGINS` | Allowed browser origins; see below | dev-server origins |
+| `AGENTATION_HOST` | Interface to bind; a non-loopback address enables remote clients | loopback only |
 
 ## Programmatic Usage
 
@@ -195,6 +197,33 @@ By default, data is persisted to SQLite at `~/.agentation/store.db`. To use in-m
 AGENTATION_STORE=memory agentation-mcp server
 ```
 
+## Network access
+
+The server is for the browser on the same machine. By default it only answers
+clients connecting over loopback that address a local hostname (`localhost`,
+`127.0.0.1`, `[::1]` or `*.localhost`), so other devices on the network and
+DNS-rebinding pages get HTTP 403. To serve other machines deliberately, bind a
+specific interface with `--host` or `AGENTATION_HOST`:
+
+```sh
+agentation-mcp server --host 0.0.0.0
+```
+
+Pages served from that machine's private address are already allowed by the
+default origin policy below; use `AGENTATION_CORS_ORIGINS` for public origins.
+
+### Containers, Codespaces and remote dev
+
+When the browser reaches the server through a port forward or a container
+bridge, the connection is not loopback and the page origin is public. Allow
+both explicitly:
+
+```sh
+AGENTATION_CORS_ORIGINS='https://your-forwarded-app-origin' agentation-mcp server --host 0.0.0.0
+```
+
+`agentation-mcp doctor` reports the address it can reach the server on.
+
 ## Browser origins
 
 `AGENTATION_CORS_ORIGINS` controls which browser origins may call the HTTP server.
@@ -210,8 +239,11 @@ Use exact HTTP(S) origins, including the port when present. Paths, credentials,
 query strings, regular expressions and a wildcard mixed with other origins are
 rejected at startup. A trailing slash is accepted and normalized.
 
-When unset, the existing `*` behavior is preserved. An explicitly empty value
-rejects every browser Origin. Requests without an Origin, such as ordinary CLI
+When unset, dev-server origins are allowed: `localhost`, `*.localhost`,
+`127.0.0.1`, `[::1]`, private-network addresses (`10.*`, `192.168.*`,
+`172.16-31.*`) and `.local`, `.test` or `.internal` hostnames, over HTTP or
+HTTPS on any port. Set the variable to add anything else, or to `*` to allow
+every origin. An explicitly empty value rejects every browser Origin. Requests without an Origin, such as ordinary CLI
 clients, remain allowed. CORS is a browser access policy, not authentication.
 
 ## Webhook delivery

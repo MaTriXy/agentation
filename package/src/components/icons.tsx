@@ -1,6 +1,7 @@
 "use client";
 
-import s from "./icon-transitions.module.scss";
+import s, { css as iconCss } from "./icon-transitions.module.scss";
+import { useEnsureStyles } from "../utils/ensure-styles";
 
 // =============================================================================
 // Icons
@@ -210,7 +211,7 @@ export const IconCopyAnimated = ({
   copied?: boolean;
   tint?: string;
 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={tint ? { color: tint, transition: 'color 0.3s ease' } : undefined}>
+  <svg ref={useEnsureStyles("icon-transitions", iconCss)} width={size} height={size} viewBox="0 0 24 24" fill="none" style={tint ? { color: tint, transition: 'color 0.3s ease' } : undefined}>
     {/* Copy icon */}
     <g
       className={`${s.iconState} ${copied ? s.hiddenScaled : s.visibleScaled}`}
@@ -333,7 +334,7 @@ export const IconSendAnimated = ({
   size?: number;
   sent?: boolean;
 }) => (
-  <svg width={size} height={size} viewBox="0 0 22 21" fill="none">
+  <svg ref={useEnsureStyles("icon-transitions", iconCss)} width={size} height={size} viewBox="0 0 22 21" fill="none">
     {/* Send icon (document with arrow) */}
     <g className={`${s.iconState} ${sent ? s.hiddenScaled : s.visibleScaled}`}>
       <path
@@ -446,7 +447,7 @@ export const IconEyeAnimated = ({
   size?: number;
   isOpen?: boolean;
 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+  <svg ref={useEnsureStyles("icon-transitions", iconCss)} width={size} height={size} viewBox="0 0 24 24" fill="none">
     {/* Open state - full outline + pupil */}
     <g className={`${s.iconFade} ${isOpen ? s.visible : s.hidden}`}>
       <path
@@ -488,7 +489,7 @@ export const IconPausePlayAnimated = ({
   size?: number;
   isPaused?: boolean;
 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+  <svg ref={useEnsureStyles("icon-transitions", iconCss)} width={size} height={size} viewBox="0 0 24 24" fill="none">
     {/* Pause bars - visible when not paused */}
     <g className={`${s.iconFadeFast} ${isPaused ? s.hidden : s.visible}`}>
       <path

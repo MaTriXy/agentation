@@ -25,6 +25,7 @@ import {
   getEventsSince,
 } from "./store.js";
 import { eventBus } from "./events.js";
+import { isLoopbackAddress, isLoopbackHost, isLocalHostHeader } from "./network.js";
 import { createCorsPolicy } from "./cors.js";
 import { createWebhookDispatcher, type WebhookDispatcher } from "./webhooks.js";
 import type { Annotation, AFSEvent, ActionRequest } from "../types.js";
@@ -721,6 +722,7 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
       const newSessionId = transport.sessionId;
       if (newSessionId && !mcpTransports.has(newSessionId)) {
         mcpTransports.set(newSessionId, transport);
+        transport.onclose = () => { mcpTransports.delete(newSessionId); };
         log(`[MCP HTTP] New session created: ${newSessionId}`);
       }
     } catch (err) {
@@ -898,8 +900,16 @@ function matchRoute(
  * Create and start the HTTP server.
  * @param port - Port to listen on
  * @param apiKey - Optional API key for cloud storage mode
+ * @param options.host - Interface to bind. Defaults to loopback-only access;
+ *   a non-loopback host (or AGENTATION_HOST) opts in to remote clients.
  */
-export function startHttpServer(port: number, apiKey?: string): ReturnType<typeof createServer> {
+export function startHttpServer(
+  port: number,
+  apiKey?: string,
+  options: { host?: string } = {},
+): ReturnType<typeof createServer> {
+  const host = options.host ?? process.env.AGENTATION_HOST?.trim() ?? undefined;
+  const allowRemote = !!host && !isLoopbackHost(host);
   const applyCors = createCorsPolicy();
   const webhooks = createWebhookDispatcher();
   // Set cloud mode if API key provided
@@ -908,6 +918,12 @@ export function startHttpServer(port: number, apiKey?: string): ReturnType<typeo
   }
 
   const server = createServer(async (req, res) => {
+    if (!allowRemote) {
+      if (!isLoopbackAddress(req.socket.remoteAddress))
+        return sendError(res, 403, "Remote access is disabled. Start the server with --host (and set AGENTATION_CORS_ORIGINS for public page origins) to allow it.");
+      if (!isLocalHostHeader(req.headers.host, host ? [host] : []))
+        return sendError(res, 403, "Host not allowed");
+    }
     if (!applyCors(req, res)) return sendError(res, 403, "Origin not allowed");
     const url = new URL(req.url || "/", `http://localhost:${port}`);
     const pathname = url.pathname;
@@ -975,12 +991,11 @@ export function startHttpServer(port: number, apiKey?: string): ReturnType<typeo
     }
   });
 
-  server.listen(port, () => {
-    if (isCloudMode()) {
-      log(`[HTTP] Agentation server listening on http://localhost:${port} (cloud mode)`);
-    } else {
-      log(`[HTTP] Agentation server listening on http://localhost:${port}`);
-    }
-  });
+  const onListening = () => {
+    const where = host && !isLoopbackHost(host) ? host : "localhost";
+    log(`[HTTP] Agentation server listening on http://${where}:${port}${isCloudMode() ? " (cloud mode)" : ""}${allowRemote ? " (remote access enabled)" : ""}`);
+  };
+  if (host) server.listen(port, host, onListening);
+  else server.listen(port, onListening);
   return server;
 }

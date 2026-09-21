@@ -130,13 +130,17 @@ export default function FeaturesPage() {
               <td>Copy feedback</td>
             </tr>
             <tr>
+              <td><code>S</code></td>
+              <td>Send annotations</td>
+            </tr>
+            <tr>
               <td><code>X</code></td>
               <td>Clear all annotations</td>
             </tr>
           </tbody>
         </ReferenceTable>
         <DocNote>
-          Shortcuts are disabled when typing in an input field.
+          Single-key shortcuts work while the toolbar is open, and all shortcuts are disabled when typing in an input field. Cmd+Shift+F and Esc also work while it is closed.
         </DocNote>
       </section>
 

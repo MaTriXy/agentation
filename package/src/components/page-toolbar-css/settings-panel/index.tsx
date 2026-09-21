@@ -328,7 +328,7 @@ export const SettingsPanel = memo(function SettingsPanel({
             >
               MCP connection allows agents to receive and act on annotations.{" "}
               <a
-                href="https://agentation.dev/mcp"
+                href="https://agentation.com/mcp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.learnMoreLink}

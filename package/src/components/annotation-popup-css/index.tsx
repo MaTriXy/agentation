@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useExitCompletion } from "../../hooks/use-exit-completion";
-import styles from "./styles.module.scss";
+import styles, { css as popupCss } from "./styles.module.scss";
+import { ensureStyles } from "../../utils/ensure-styles";
 import { AnnotationEditor, type AnnotationEditorHandle } from "./annotation-editor";
 import { originalSetTimeout } from "../../utils/freeze-animations";
 
@@ -87,6 +88,9 @@ export const AnnotationPopupCSS = forwardRef<AnnotationPopupCSSHandle, Annotatio
     const [animState, setAnimState] = useState<"initial" | "enter" | "entered" | "exit">("initial");
     const editorRef = useRef<AnnotationEditorHandle>(null);
     const popupRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      ensureStyles(popupRef.current?.getRootNode(), "annotation-popup", popupCss);
+    }, []);
     const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Animate in on mount and focus textarea

@@ -4,6 +4,7 @@
  */
 
 import Database from "better-sqlite3";
+import { integerEnv } from "./config.js";
 import { createHash, randomBytes } from "crypto";
 import { mkdirSync, existsSync } from "fs";
 import { join } from "path";
@@ -289,9 +290,27 @@ function createEventWriter(db: Database.Database) {
 // SQLite Store Implementation
 // -----------------------------------------------------------------------------
 
+/**
+ * Switching a fresh database to WAL takes an exclusive lock that ignores the
+ * busy timeout, so two servers opening the same new file at once can fail with
+ * SQLITE_BUSY. Retry briefly instead of degrading to the in-memory store.
+ */
+function enableWal(db: Database.Database, attempts = 20): void {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      db.pragma("journal_mode = WAL");
+      return;
+    } catch (error) {
+      if (attempt >= attempts || (error as { code?: string }).code !== "SQLITE_BUSY") throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * attempt);
+    }
+  }
+}
+
 export function createSQLiteStore(dbPath?: string): AFSStore {
   const db = new Database(dbPath ?? getDbPath());
-  db.pragma("journal_mode = WAL");
+  db.pragma("busy_timeout = 5000");
+  enableWal(db);
   initDatabase(db);
 
   // Safe migrations for new columns (no-ops if already exist)
@@ -361,7 +380,7 @@ export function createSQLiteStore(dbPath?: string): AFSStore {
   };
 
   // Prune events older than retention period on startup
-  const retentionDays = parseInt(process.env.AGENTATION_EVENT_RETENTION_DAYS || "7", 10);
+  const retentionDays = integerEnv("AGENTATION_EVENT_RETENTION_DAYS", 7, 0, 3650);
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
   stmts.pruneOldEvents.run(cutoff);
 
@@ -723,7 +742,7 @@ export function createTenantStore(dbPath?: string): TenantStore {
   };
 
   // Prune events older than retention period on startup
-  const retentionDays = parseInt(process.env.AGENTATION_EVENT_RETENTION_DAYS || "7", 10);
+  const retentionDays = integerEnv("AGENTATION_EVENT_RETENTION_DAYS", 7, 0, 3650);
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
   tenantStmts.pruneOldEvents.run(cutoff);
 

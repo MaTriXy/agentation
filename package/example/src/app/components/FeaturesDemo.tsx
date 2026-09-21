@@ -1462,7 +1462,7 @@ export function SettingsDemo() {
             <span className="sd-brand">
               Agentation
             </span>
-            <span className="sd-version">v3.1.0</span>
+            <span className="sd-version">v3.1.1</span>
             <button ref={themeToggleRef} className="sd-theme-toggle" onClick={() => setIsDarkMode(!isDarkMode)}>
               {isDarkMode ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

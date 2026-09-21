@@ -4,6 +4,8 @@ Monorepo containing:
 
 1. **npm package** (`package/`) - See `package/AGENTS.md`
 2. **Website/docs** (`package/example/`) - See `package/example/AGENTS.md`
+3. **MCP server** (`mcp/`, published as `agentation-mcp`)
+4. **Agent skills** (`skills/`)
 
 ## What is Agentation?
 
@@ -20,7 +22,7 @@ pnpm build      # Build package only
 ## Important
 
 The npm package is public. Changes to `package/src/` affect all users.
-Website changes (`package/example/`) only affect agentation.dev.
+Website changes (`package/example/`) only affect agentation.com.
 
 ## PR/Issue Approach
 

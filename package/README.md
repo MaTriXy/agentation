@@ -69,12 +69,13 @@ browser: create a test annotation and ask your agent to read
 | `onAnnotationUpdate` | `(annotation: Annotation) => void` | - | Called when an annotation is edited |
 | `onAnnotationsClear` | `(annotations: Annotation[]) => void` | - | Called when all annotations are cleared |
 | `onCopy` | `(output: string) => void` | - | Callback with formatted output after a Copy attempt, even if clipboard access fails |
-| `onSubmit` | `(output: string, annotations: Annotation[]) => void` | - | Called when "Send Annotations" is clicked |
+| `onSubmit` | `(output: string, annotations: Annotation[]) => void \| Promise<void>` | - | Called when "Send Annotations" is clicked; awaited, and a rejection marks the send as failed and keeps the feedback |
 | `copyToClipboard` | `boolean` | `true` | Set to false to prevent writing to clipboard |
 | `endpoint` | `string` | - | Server URL for Agent Sync (e.g., `"http://localhost:4747"`) |
 | `sessionId` | `string` | - | Pre-existing session ID to join |
 | `onSessionCreated` | `(sessionId: string) => void` | - | Called when a new session is created |
 | `webhookUrl` | `string` | - | Webhook URL to receive annotation events |
+| `className` | `string` | - | Class applied to the toolbar host, for positioning, z-index or hiding it |
 | `useHashLocation` | `boolean` | `false` | Separate feedback, layout state and sessions by pathname plus hash |
 | `appName` | `string` | - | Identify the app in copied and submitted feedback |
 | `enableKeyboardShortcuts` | `boolean` | `true` | Enable global shortcuts; popup Enter/Escape and button activation remain available |

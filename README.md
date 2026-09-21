@@ -57,7 +57,7 @@ See the [setup guide](https://agentation.com/install#agent-integration).
 - **Embedded pages** – Select elements in open shadow roots and same-origin iframes
 - **Integration options** – Capture identifying attributes, choose metadata-only Copy formats, and open detected source locations through your editor integration
 - **Hash routes** – Opt in to separate annotations and sessions for each hash route
-- **Dark/light mode** – Matches your preference or set manually
+- **Dark/light mode** – Toggle in settings, persists to localStorage
 - **Zero dependencies** – No runtime libraries beyond the React peer dependencies
 
 See the [package README](package/README.md) for props and integration examples.
