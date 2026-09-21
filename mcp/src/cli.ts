@@ -14,6 +14,27 @@ import { spawn } from "child_process";
 
 const command = process.argv[2];
 
+function doctorEndpoint(): string {
+  const args = process.argv.slice(3);
+  const index = args.indexOf("--http-url");
+  const value = index < 0 ? "http://localhost:4747" : args[index + 1];
+  if (!value) throw new Error("--http-url requires an HTTP(S) server URL");
+  const url = new URL(value);
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+    throw new Error("--http-url requires an HTTP(S) server URL without credentials, query or fragment");
+  }
+  return url.href.replace(/\/$/, "");
+}
+
+function printBrowserSetup(endpoint: string) {
+  console.log(`Browser sync is not verified by these service checks.`);
+  console.log(`Add the matching endpoint to your app:`);
+  console.log(`  <Agentation endpoint=${JSON.stringify(endpoint)} />`);
+  console.log(`Without endpoint, feedback stays in the browser for manual copying.`);
+  console.log(`Create a test annotation, then ask your agent to call agentation_get_all_pending`);
+  console.log(`and confirm that the same comment and page appear.`);
+}
+
 // ============================================================================
 // INIT COMMAND - Interactive setup wizard
 // ============================================================================
@@ -62,8 +83,8 @@ async function runInit() {
 
     // Register MCP server using claude mcp add
     const mcpArgs = port === 4747
-      ? ["mcp", "add", "agentation", "--", "npx", "agentation-mcp", "server"]
-      : ["mcp", "add", "agentation", "--", "npx", "agentation-mcp", "server", "--port", String(port)];
+      ? ["mcp", "add", "agentation", "--", "npx", "-y", "agentation-mcp", "server"]
+      : ["mcp", "add", "agentation", "--", "npx", "-y", "agentation-mcp", "server", "--port", String(port)];
 
     console.log();
     console.log(`Running: claude ${mcpArgs.join(" ")}`);
@@ -81,8 +102,10 @@ async function runInit() {
     } catch (err) {
       console.log(`✗ Could not register MCP server automatically: ${err}`);
       console.log(`  You can register manually by running:`);
-      console.log(`  claude mcp add agentation -- npx agentation-mcp server`);
+      console.log(`  claude ${mcpArgs.join(" ")}`);
     }
+    console.log();
+    printBrowserSetup(`http://localhost:${port}`);
     console.log();
 
     // Test connection
@@ -92,7 +115,7 @@ async function runInit() {
       console.log(`Starting server on port ${port}...`);
 
       // Start server in background
-      const server = spawn("agentation-mcp", ["server", "--port", String(port)], {
+      const server = spawn(process.execPath, [process.argv[1], "server", "--port", String(port)], {
         stdio: "inherit",
         detached: false,
       });
@@ -106,7 +129,7 @@ async function runInit() {
         if (response.ok) {
           console.log();
           console.log(`✓ Server is running on http://localhost:${port}`);
-          console.log(`✓ MCP tools available to Claude Code`);
+          console.log(`Confirm the agent is connected and can read your test annotation.`);
           console.log();
           console.log(`Press Ctrl+C to stop the server.`);
 
@@ -124,7 +147,7 @@ async function runInit() {
   }
 
   console.log();
-  console.log(`Setup complete! Run 'agentation-mcp doctor' to verify your setup.`);
+  console.log(`Run 'agentation-mcp doctor' for service checks, then verify a browser annotation reaches your agent.`);
   rl.close();
 }
 
@@ -133,6 +156,7 @@ async function runInit() {
 // ============================================================================
 
 async function runDoctor() {
+  const endpoint = doctorEndpoint();
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║                    Agentation MCP Doctor                       ║
@@ -191,16 +215,16 @@ async function runDoctor() {
     results.push({ name: "Stale config", status: "warn", message: `${oldConfigPath} exists but Claude Code doesn't read this file. Safe to delete.` });
   }
 
-  // Check 4: Server connectivity (try default port)
+  // Check 4: HTTP service connectivity, separate from browser-to-agent delivery.
   try {
-    const response = await fetch("http://localhost:4747/health", { signal: AbortSignal.timeout(2000) });
+    const response = await fetch(`${endpoint}/health`, { signal: AbortSignal.timeout(2000) });
     if (response.ok) {
-      results.push({ name: "Server (port 4747)", status: "pass", message: "Running and healthy" });
+      results.push({ name: `Server (${endpoint})`, status: "pass", message: "Running and healthy" });
     } else {
-      results.push({ name: "Server (port 4747)", status: "warn", message: `Responded with ${response.status}` });
+      results.push({ name: `Server (${endpoint})`, status: "warn", message: `Responded with ${response.status}` });
     }
   } catch {
-    results.push({ name: "Server (port 4747)", status: "warn", message: "Not running (start with: agentation-mcp server)" });
+    results.push({ name: `Server (${endpoint})`, status: "warn", message: "Not reachable. Start the server and check that --http-url matches its address." });
   }
 
   // Print results
@@ -212,7 +236,9 @@ async function runDoctor() {
 
   console.log();
   if (allPassed) {
-    console.log(`All checks passed!`);
+    console.log(results.some(r => r.status === "warn") ? `Some service checks need attention.` : `Service checks passed.`);
+    console.log();
+    printBrowserSetup(endpoint);
   } else {
     console.log(`Some checks failed. Run 'agentation-mcp init' to fix.`);
     process.exit(1);
@@ -287,7 +313,7 @@ agentation-mcp - MCP server for Agentation visual feedback
 Usage:
   agentation-mcp init                    Interactive setup wizard
   agentation-mcp server [options]        Start the annotation server
-  agentation-mcp doctor                  Check your setup and diagnose issues
+  agentation-mcp doctor [--http-url URL] Check services and show browser setup
   agentation-mcp help                    Show this help message
 
 Server Options:

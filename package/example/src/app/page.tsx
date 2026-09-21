@@ -1,52 +1,15 @@
 "use client";
 
+import { DocLinks } from "./components/DocLinks";
+import { DocHeader } from "./components/Documentation";
+import { InstallStats } from "./components/InstallStats";
+
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { Footer } from "./Footer";
 import { HeroDemo } from "./components/HeroDemo";
-
-// Animated copy/checkmark icon
-const IconCopyAnimated = ({ size = 24, copied = false }: { size?: number; copied?: boolean }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <style>{`
-      .copy-icon, .check-icon {
-        transition: opacity 0.2s ease, transform 0.2s ease;
-      }
-    `}</style>
-    {/* Copy icon */}
-    <g className="copy-icon" style={{ opacity: copied ? 0 : 1, transform: copied ? 'scale(0.8)' : 'scale(1)', transformOrigin: 'center' }}>
-      <path
-        d="M4.75 11.25C4.75 10.4216 5.42157 9.75 6.25 9.75H12.75C13.5784 9.75 14.25 10.4216 14.25 11.25V17.75C14.25 18.5784 13.5784 19.25 12.75 19.25H6.25C5.42157 19.25 4.75 18.5784 4.75 17.75V11.25Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M17.25 14.25H17.75C18.5784 14.25 19.25 13.5784 19.25 12.75V6.25C19.25 5.42157 18.5784 4.75 17.75 4.75H11.25C10.4216 4.75 9.75 5.42157 9.75 6.25V6.75"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </g>
-    {/* Checkmark circle */}
-    <g className="check-icon" style={{ opacity: copied ? 1 : 0, transform: copied ? 'scale(1)' : 'scale(0.8)', transformOrigin: 'center' }}>
-      <path
-        d="M12 20C7.58172 20 4 16.4182 4 12C4 7.58172 7.58172 4 12 4C16.4182 4 20 7.58172 20 12C20 16.4182 16.4182 20 12 20Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M15 10L11 14.25L9.25 12.25"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </g>
-  </svg>
-);
+import { Callout } from "./components/Callout";
 
 // Shadow DOM Modal Component
 function ShadowModal({ isOpen, isExiting, onClose }: { isOpen: boolean; isExiting: boolean; onClose: () => void }) {
@@ -160,28 +123,6 @@ function ShadowModal({ isOpen, isExiting, onClose }: { isOpen: boolean; isExitin
   );
 }
 
-function InstallSnippet() {
-  const [copied, setCopied] = useState(false);
-  const command = "npm install agentation";
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="install-snippet"
-      title="Copy to clipboard"
-    >
-      <code>{command}</code>
-      <IconCopyAnimated size={14} copied={copied} />
-    </button>
-  );
-}
-
 export default function AgentationDocs() {
   const [inputValue, setInputValue] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -217,14 +158,13 @@ export default function AgentationDocs() {
 
   return (
     <>
-      <article className="article" style={{ paddingTop: '3.75rem' }}>
-        <header>
-          <div className="heading-container">
-            <h1 style={{ fontSize: "2rem", lineHeight: 1.15, marginBottom: "0.5rem" }}><span className="sketchy-underline">Visual feedback.</span><br />For <span className="pen-underline">agents.</span></h1>
-            <InstallSnippet />
-          </div>
-          <p className="tagline">Agentation turns UI annotations into structured context that AI coding agents can understand and act on. Click any element, add a note, and paste the output into Claude Code, Codex, or any AI tool.</p>
-        </header>
+      <article className="article article-home">
+        <InstallStats />
+        <DocHeader
+          title="Visual feedback for agents"
+          hideTitle
+          description="Agentation turns UI annotations into structured context that AI coding agents can understand and act on. Click any element, add a note, and paste the output into Claude Code, Codex, Grok, or any AI tool."
+        />
 
         {/* Animated demo */}
         <HeroDemo />
@@ -239,21 +179,13 @@ export default function AgentationDocs() {
             <li>Click <svg style={{ display: 'inline-block', verticalAlign: '-0.45em', width: '1.5em', height: '1.5em', margin: '0 -0.1em' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4.75 11.25C4.75 10.4216 5.42157 9.75 6.25 9.75H12.75C13.5784 9.75 14.25 10.4216 14.25 11.25V17.75C14.25 18.5784 13.5784 19.25 12.75 19.25H6.25C5.42157 19.25 4.75 18.5784 4.75 17.75V11.25Z" /><path d="M17.25 14.25H17.75C18.5784 14.25 19.25 13.5784 19.25 12.75V6.25C19.25 5.42157 18.5784 4.75 17.75 4.75H11.25C10.4216 4.75 9.75 5.42157 9.75 6.25V6.75" /></svg> to copy formatted markdown</li>
             <li>Paste into your agent</li>
           </ol>
-          <p style={{ fontSize: '0.8125rem', color: 'rgba(0,0,0,0.55)', marginTop: '1rem' }}>
-            <strong style={{
-              display: 'inline',
-              margin: '-0.04em -0.06em',
-              padding: '0.04em 0.06em',
-              borderRadius: '0.2em 0.15em',
-              backgroundImage: 'linear-gradient(75deg, rgba(250, 204, 21, 0.5), rgba(250, 204, 21, 0.15) 4%, rgba(250, 204, 21, 0.3) 96%, rgba(250, 204, 21, 0.6))',
-            }}>Note:</strong> With <Link href="/mcp">MCP</Link>, you can skip the copy-paste step entirely &mdash; your agent already sees what you&apos;re pointing at. Just say &ldquo;address my feedback&rdquo; or &ldquo;fix annotation 3.&rdquo;
-          </p>
+          <Callout><p>With <Link href="/mcp">MCP</Link>, your agent can read feedback directly. Connect your agent, add a note, then ask it to address your annotations.</p></Callout>
         </section>
 
         <section>
           <h2>How agents use it</h2>
           <p>
-            Agentation works best with AI tools that have access to your codebase (Claude Code, Cursor, etc.). When you paste the output, agents get:
+            Give the output to Claude, Codex, Gemini, Grok, or any coding agent with access to your codebase. Depending on your output settings and what the page exposes, it includes:
           </p>
           <ul>
             <li><strong>CSS selectors</strong> to grep your codebase</li>
@@ -325,7 +257,7 @@ export default function AgentationDocs() {
             <li><strong>&ldquo;Clear all annotations&rdquo;</strong> &mdash; Dismiss everything at once</li>
           </ul>
           <p>
-            Your feedback becomes a conversation, not a one-way ticket into the void.
+            Follow-up questions and resolutions stay attached to the original annotation.
           </p>
         </section>
 
@@ -349,9 +281,11 @@ export default function AgentationDocs() {
         </section>
 
         <section className="quickstart-links">
-          <p><Link href="/mcp" className="styled-link">Set up real-time sync with MCP <span className="arrow">→</span></Link></p>
-          <p><Link href="/webhooks" className="styled-link">Push annotations to external services <span className="arrow">→</span></Link></p>
-          <p><Link href="/api" className="styled-link">Build your own integration with the API <span className="arrow">→</span></Link></p>
+          <DocLinks links={[
+            { href: "/mcp", label: "Set up real-time sync with MCP" },
+            { href: "/webhooks", label: "Push annotations to external services" },
+            { href: "/api", label: "Build your own integration with the API" },
+          ]} />
         </section>
 
       </article>

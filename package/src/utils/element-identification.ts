@@ -1,3 +1,6 @@
+import { isShadowRoot, parentFrame } from "./frame-dom";
+import { identifyingAttributeSelector } from "./element-attributes";
+
 // =============================================================================
 // Element Identification Utilities
 // =============================================================================
@@ -15,7 +18,7 @@ function getParentElement(element: Element): Element | null {
     return element.parentElement;
   }
   const root = element.getRootNode();
-  if (root instanceof ShadowRoot) {
+  if (isShadowRoot(root)) {
     return root.host;
   }
   return null;
@@ -37,7 +40,7 @@ export function closestCrossingShadow(element: Element, selector: string): Eleme
  * Checks if an element is inside a shadow DOM
  */
 export function isInShadowDOM(element: Element): boolean {
-  return element.getRootNode() instanceof ShadowRoot;
+  return isShadowRoot(element.getRootNode());
 }
 
 /**
@@ -45,7 +48,7 @@ export function isInShadowDOM(element: Element): boolean {
  */
 export function getShadowHost(element: Element): Element | null {
   const root = element.getRootNode();
-  if (root instanceof ShadowRoot) {
+  if (isShadowRoot(root)) {
     return root.host;
   }
   return null;
@@ -59,7 +62,7 @@ export function getShadowHost(element: Element): Element | null {
  * Gets a readable path for an element (e.g., "article > section > p")
  * Supports elements inside shadow DOM by crossing shadow boundaries.
  */
-export function getElementPath(target: HTMLElement, maxDepth = 4): string {
+export function getElementPath(target: HTMLElement, maxDepth = 4, attributeNames?: readonly string[]): string {
   const parts: string[] = [];
   let current: HTMLElement | null = target;
   let depth = 0;
@@ -67,8 +70,11 @@ export function getElementPath(target: HTMLElement, maxDepth = 4): string {
   while (current && depth < maxDepth) {
     const tag = current.tagName.toLowerCase();
 
-    // Skip generic wrappers
-    if (tag === "html" || tag === "body") break;
+    // Omit generic ancestors, but keep a path when the page itself is picked.
+    if (tag === "html" || tag === "body") {
+      if (parts.length === 0) parts.push(tag);
+      break;
+    }
 
     // Get identifier
     let identifier = tag;
@@ -83,6 +89,8 @@ export function getElementPath(target: HTMLElement, maxDepth = 4): string {
       }
     }
 
+    identifier += identifyingAttributeSelector(current, attributeNames);
+
     // Mark shadow boundary crossings
     const nextParent = getParentElement(current);
     if (!current.parentElement && nextParent) {
@@ -94,14 +102,30 @@ export function getElementPath(target: HTMLElement, maxDepth = 4): string {
     depth++;
   }
 
-  return parts.join(" > ");
+  const frame = parentFrame(target.ownerDocument);
+  return (frame ? getElementPath(frame, 2) + " > ⟨iframe⟩ " : "") + parts.join(" > ");
+}
+
+/**
+ * Gets concatenated direct text node content from an element.
+ * Only includes immediate text nodes, not text from child elements.
+ */
+function getDirectTextContent(el: HTMLElement): string {
+  let text = "";
+  for (const child of el.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      const t = child.textContent?.trim();
+      if (t) text += (text ? " " : "") + t;
+    }
+  }
+  return text;
 }
 
 /**
  * Identifies an element and returns a human-readable name + path
  */
-export function identifyElement(target: HTMLElement): { name: string; path: string } {
-  const path = getElementPath(target);
+export function identifyElement(target: HTMLElement, attributeNames?: readonly string[]): { name: string; path: string } {
+  const path = getElementPath(target, 4, attributeNames);
 
   if (target.dataset.element) {
     return { name: target.dataset.element, path };
@@ -115,8 +139,8 @@ export function identifyElement(target: HTMLElement): { name: string; path: stri
     const svg = closestCrossingShadow(target, "svg");
     if (svg) {
       const parent = getParentElement(svg);
-      if (parent instanceof HTMLElement) {
-        const parentName = identifyElement(parent).name;
+      if (parent?.namespaceURI === "http://www.w3.org/1999/xhtml") {
+        const parentName = identifyElement(parent as HTMLElement).name;
         return { name: `graphic in ${parentName}`, path };
       }
     }
@@ -199,6 +223,12 @@ export function identifyElement(target: HTMLElement): { name: string; path: stri
 
     if (ariaLabel) return { name: `${tag} [${ariaLabel}]`, path };
     if (role) return { name: `${role}`, path };
+
+    // Prefer direct text content over class names — "$54" is more useful than "styles productPrice"
+    const directText = getDirectTextContent(target);
+    if (directText && directText.length < 50) {
+      return { name: `"${directText}"`, path };
+    }
 
     if (typeof className === "string" && className) {
       const words = className
@@ -313,12 +343,12 @@ export function getNearbyElements(element: HTMLElement): string {
 
   // Get siblings from the correct source
   const elementRoot = element.getRootNode();
-  const children = (elementRoot instanceof ShadowRoot && element.parentElement)
+  const children = (isShadowRoot(elementRoot) && element.parentElement)
     ? Array.from(element.parentElement.children)
     : Array.from(parent.children);
 
   const siblings = children.filter(
-    (child) => child !== element && child instanceof HTMLElement
+    (child) => child !== element && child.namespaceURI === "http://www.w3.org/1999/xhtml"
   ) as HTMLElement[];
 
   if (siblings.length === 0) return "";
@@ -391,7 +421,7 @@ export function getElementClasses(target: HTMLElement): string {
 export function getComputedStylesSnapshot(target: HTMLElement): string {
   if (typeof window === "undefined") return "";
 
-  const styles = window.getComputedStyle(target);
+  const styles = (target.ownerDocument.defaultView ?? window).getComputedStyle(target);
   const parts: string[] = [];
 
   // Color & text
@@ -451,7 +481,7 @@ const CONTAINER_ELEMENTS = new Set([
 export function getDetailedComputedStyles(target: HTMLElement): Record<string, string> {
   if (typeof window === "undefined") return {};
 
-  const styles = window.getComputedStyle(target);
+  const styles = (target.ownerDocument.defaultView ?? window).getComputedStyle(target);
   const result: Record<string, string> = {};
   const tag = target.tagName.toLowerCase();
 
@@ -514,7 +544,7 @@ const FORENSIC_PROPERTIES = [
 export function getForensicComputedStyles(target: HTMLElement): string {
   if (typeof window === "undefined") return "";
 
-  const styles = window.getComputedStyle(target);
+  const styles = (target.ownerDocument.defaultView ?? window).getComputedStyle(target);
   const parts: string[] = [];
 
   for (const prop of FORENSIC_PROPERTIES) {
@@ -611,5 +641,6 @@ export function getFullElementPath(target: HTMLElement): string {
     current = nextParent as HTMLElement | null;
   }
 
-  return parts.join(" > ");
+  const frame = parentFrame(target.ownerDocument);
+  return (frame ? getFullElementPath(frame) + " > ⟨iframe⟩ " : "") + parts.join(" > ");
 }

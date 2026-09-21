@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { COMPONENT_REGISTRY, DEFAULT_SIZES, type ComponentType } from "./types";
 import { originalRequestAnimationFrame, originalSetTimeout } from "../../utils/freeze-animations";
 import styles from "./styles.module.scss";
+import { usePanelPresence } from "../../hooks/use-panel-presence";
 
 function scrollFadeClass(el: HTMLDivElement | null) {
   if (!el) return "";
@@ -652,7 +653,9 @@ export function ComponentGrid({ activeType, onSelect, onDragStart, scrollRef, fa
         <div key={section.section} className={styles.paletteSection}>
           <div className={styles.paletteSectionTitle}>{section.section}</div>
           {section.items.map((item) => (
-            <div
+            <button
+              type="button"
+              aria-pressed={activeType === item.type}
               key={item.type}
               className={`${styles.paletteItem} ${activeType === item.type ? styles.active : ""} ${blankCanvas ? styles.wireframe : ""}`}
               onClick={() => onSelect(item.type)}
@@ -660,11 +663,11 @@ export function ComponentGrid({ activeType, onSelect, onDragStart, scrollRef, fa
                 if (e.button === 0) onDragStart(item.type, e);
               }}
             >
-              <div className={styles.paletteItemIcon}>
+              <span className={styles.paletteItemIcon} aria-hidden="true">
                 <PaletteIconSvg type={item.type} />
-              </div>
+              </span>
               <span className={styles.paletteItemLabel}>{item.label}</span>
-            </div>
+            </button>
           ))}
         </div>
       ))}
@@ -772,38 +775,13 @@ export function DesignPalette({
   onWireframePurposeChange,
   Tooltip,
 }: DesignPaletteProps) {
-  const [mounted, setMounted] = useState(false);
-  const [animClass, setAnimClass] = useState<"enter" | "exit">("exit");
+  const { ref: panelRef, mounted } = usePanelPresence(visible, { onExited });
   const [footerVisible, setFooterVisible] = useState(false);
   const [footerCollapsed, setFooterCollapsed] = useState(true);
   const lastFooterCount = useRef(0);
   const lastFooterSuffix = useRef("");
-  const rafRef = useRef(0);
-  const exitTimerRef = useRef<ReturnType<typeof originalSetTimeout>>();
   const placeScrollRef = useRef<HTMLDivElement>(null);
   const [placeFade, setPlaceFade] = useState("");
-
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      clearTimeout(exitTimerRef.current);
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = originalRequestAnimationFrame(() => {
-        rafRef.current = originalRequestAnimationFrame(() => {
-          setAnimClass("enter");
-        });
-      });
-    } else {
-      cancelAnimationFrame(rafRef.current);
-      setAnimClass("exit");
-      clearTimeout(exitTimerRef.current);
-      exitTimerRef.current = originalSetTimeout(() => {
-        setMounted(false);
-        onExited?.();
-      }, 200);
-    }
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [visible]);
 
   // Animate footer in/out based on whether there's anything to show
   const hasFooterContent = placementCount > 0 || sectionCount > 0;
@@ -834,16 +812,17 @@ export function DesignPalette({
 
   // Scroll fade
   useEffect(() => {
-    if (!mounted) return;
+    if (!visible) return;
     const el = placeScrollRef.current;
     if (!el) return;
     const update = () => setPlaceFade(scrollFadeClass(el));
-    update();
+    // ResizeObserver supplies the initial measurement after layout is resolved.
+    // Reading scroll geometry here forces a synchronous layout during opening.
     el.addEventListener("scroll", update, { passive: true });
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => { el.removeEventListener("scroll", update); ro.disconnect(); };
-  }, [mounted]);
+  }, [visible]);
 
   if (!mounted) return null;
 
@@ -854,20 +833,14 @@ export function DesignPalette({
 
   return (
     <div
-      className={`${styles.palette} ${styles[animClass]} ${!isDarkMode ? styles.light : ""}`}
+      className={`${styles.palette} ${!isDarkMode ? styles.light : ""}`}
+      ref={(node) => { panelRef.current = node; node?.toggleAttribute("inert", !visible); }}
+      aria-hidden={!visible}
       data-feedback-toolbar
       data-agentation-palette
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
-      onTransitionEnd={(e) => {
-        if (e.target !== e.currentTarget) return;
-        if (!visible) {
-          clearTimeout(exitTimerRef.current);
-          setMounted(false);
-          setAnimClass("exit");
-          onExited?.();
-        }
-      }}
+
     >
       {/* Panel header — fixed title with description */}
       <div className={styles.paletteHeader}>
@@ -879,11 +852,13 @@ export function DesignPalette({
       </div>
 
       {/* Wireframe toggle */}
-      <div
+      <button
+        type="button"
+        aria-pressed={blankCanvas}
         className={`${styles.canvasToggle} ${blankCanvas ? styles.active : ""}`}
         onClick={() => onBlankCanvasChange(!blankCanvas)}
       >
-        <span className={styles.canvasToggleIcon}>
+        <span className={styles.canvasToggleIcon} aria-hidden="true">
           <svg viewBox="0 0 14 14" width="14" height="14" fill="none">
             <rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1" />
             <circle cx="4.5" cy="4.5" r="0.8" fill="currentColor" opacity=".6" />
@@ -898,9 +873,9 @@ export function DesignPalette({
           </svg>
         </span>
         <span className={styles.canvasToggleLabel}>Wireframe New Page</span>
-      </div>
+      </button>
       {/* Wireframe purpose textarea — only when wireframe active */}
-      <div className={`${styles.wireframePurposeWrap} ${!blankCanvas ? styles.collapsed : ""}`}>
+      <div className={`${styles.wireframePurposeWrap} ${!blankCanvas ? styles.collapsed : ""}`} aria-hidden={!blankCanvas} ref={node => { node?.toggleAttribute("inert", !blankCanvas); }}>
         <div className={styles.wireframePurposeInner}>
           <textarea
             className={styles.wireframePurposeInput}

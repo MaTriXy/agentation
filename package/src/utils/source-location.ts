@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 // =============================================================================
 // Source Location Detection Utilities
@@ -175,7 +175,7 @@ export function detectReactApp(): {
 
   // Fallback: Check for React root markers on DOM
   const hasReactRoot = document.querySelector("[data-reactroot]") !== null;
-  const hasReactContainer = document.getElementById("root")?._reactRootContainer !== undefined;
+  const hasReactContainer = (document.getElementById("root") as (HTMLElement & { _reactRootContainer?: unknown }) | null)?._reactRootContainer !== undefined;
 
   // Check for fiber keys on body's children
   const bodyChildren = document.body.children;
@@ -484,7 +484,8 @@ function getReactDispatcher(): {
  * Parse the first non-internal frame from an error stack string.
  */
 function parseComponentFrame(
-  stack: string
+  stack: string,
+  functionName?: string,
 ): { fileName: string; line: number; column?: number } | null {
   const lines = stack.split("\n");
 
@@ -497,6 +498,10 @@ function parseComponentFrame(
     /react\.development/,
     /react\.production/,
     /chunk-[A-Z0-9]+/i,
+    /\/_next\/static\/chunks\//,
+    /\/\.vite\/deps\//,
+    /\/_astro\//,
+    /\/assets\/[^\s/]+[-.][\w-]{8,}\.m?js(?:[?:]|$)/,
     /react-stack-bottom-frame/,
     /react-reconciler/,
     /scheduler/,
@@ -514,6 +519,13 @@ function parseComponentFrame(
 
     // Skip frames from internal files
     if (skipPatterns.some((p) => p.test(trimmed))) continue;
+    // A renamed/combined library bundle no longer has a recognizable filename.
+    // Require the probed component's frame instead of returning our Proxy.get
+    // or a React hook's generated location as if it were application source.
+    if (functionName) {
+      const name = functionName.replace(/^bound /, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (!new RegExp(`(?:at (?:Object\\.)?|^)${name}(?: \\(|@| \\[)`).test(trimmed)) continue;
+    }
 
     const match = v8Re.exec(trimmed) || webkitRe.exec(trimmed);
     if (match) {
@@ -609,7 +621,7 @@ function probeComponentSource(fiber: ReactFiber): SourceLocation | null {
       fn({});
     } catch (e) {
       if (e instanceof Error && e.message === "probe" && e.stack) {
-        const frame = parseComponentFrame(e.stack);
+        const frame = parseComponentFrame(e.stack, fn.name);
         if (frame) {
           const cleaned = cleanSourcePath(frame.fileName);
           result = {

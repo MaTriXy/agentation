@@ -65,6 +65,11 @@ export async function syncAnnotation(
   sessionId: string,
   annotation: Annotation
 ): Promise<Annotation> {
+  // Older page-level notes were saved with an empty path, which the server
+  // rejects. Repair only the two known document elements when retrying them.
+  if (!annotation.elementPath && (annotation.element === "body" || annotation.element === "html")) {
+    annotation = { ...annotation, elementPath: annotation.element };
+  }
   const response = await fetch(`${endpoint}/sessions/${sessionId}/annotations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -24,10 +24,18 @@ export const OUTPUT_DETAIL_OPTIONS: {
   { value: "forensic", label: "Forensic" },
 ];
 
+export function generateOutputHeader(pathname: string, appName?: string): string {
+  let output = `## Page Feedback: ${pathname}\n`;
+  const name = appName?.replace(/[\r\n\t]+/g, " ").trim();
+  if (name) output += `**App:** ${name.replace(/[\\`*_\[\]<>]/g, "\\$&")}\n`;
+  return output;
+}
+
 export function generateOutput(
   annotations: Annotation[],
   pathname: string,
   detailLevel: OutputDetailLevel = "standard",
+  options: { appName?: string } = {},
 ): string {
   if (annotations.length === 0) return "";
 
@@ -36,7 +44,7 @@ export function generateOutput(
       ? `${window.innerWidth}×${window.innerHeight}`
       : "unknown";
 
-  let output = `## Page Feedback: ${pathname}\n`;
+  let output = generateOutputHeader(pathname, options.appName);
 
   if (detailLevel === "forensic") {
     output += `\n**Environment:**\n`;

@@ -5,7 +5,7 @@ export default function ColophonPage() {
         .colophon-page {
           max-width: 36rem;
           margin: 0 auto;
-          padding: 4rem 1.5rem 3rem;
+          padding: 3.5rem 1.5rem 3rem;
         }
         @media (max-width: 900px) {
           .colophon-page {
@@ -15,19 +15,19 @@ export default function ColophonPage() {
         .colophon-page h1 {
           font-size: 0.8125rem;
           font-weight: 500;
-          color: rgba(0, 0, 0, 0.4);
+          color: var(--docs-muted);
           margin-bottom: 1.25rem;
         }
         .colophon-content {
           font-size: 0.75rem;
-          color: rgba(0, 0, 0, 0.4);
+          color: var(--docs-muted);
           line-height: 1.8;
         }
         .colophon-content p {
           margin-bottom: 0.5rem;
         }
         .colophon-content a {
-          color: rgba(0, 0, 0, 0.5);
+          color: var(--docs-ink);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
@@ -55,14 +55,14 @@ export default function ColophonPage() {
           border-bottom: none;
         }
         .colophon-row-label {
-          color: rgba(0, 0, 0, 0.35);
+          color: var(--docs-muted);
         }
         .colophon-row-value {
-          color: rgba(0, 0, 0, 0.5);
+          color: var(--docs-ink);
           text-align: right;
         }
         .colophon-row-value a {
-          color: rgba(0, 0, 0, 0.5);
+          color: var(--docs-ink);
         }
       `}</style>
       <div className="colophon-page">
@@ -73,8 +73,7 @@ export default function ColophonPage() {
             in TypeScript with full type definitions. Available on <a href="https://www.npmjs.com/package/agentation" target="_blank" rel="noopener noreferrer">npm</a> and <a href="https://github.com/benjitaylor/agentation" target="_blank" rel="noopener noreferrer">GitHub</a>.
           </p>
           <p>
-            Made by <a href="https://x.com/benjitaylor" target="_blank" rel="noopener noreferrer">Benji Taylor</a>, <a href="https://x.com/seldom" target="_blank" rel="noopener noreferrer">Dennis Jin</a>, and <a href="https://x.com/alexvanderzon" target="_blank" rel="noopener noreferrer">Alex Vanderzon</a>,
-            with help from <a href="https://claude.ai/code" target="_blank" rel="noopener noreferrer">Claude Code</a>.<br />
+            Made by <a href="https://x.com/benjitaylor" target="_blank" rel="noopener noreferrer">Benji Taylor</a>, <a href="https://x.com/seldom" target="_blank" rel="noopener noreferrer">Dennis Jin</a>, and <a href="https://x.com/alexvanderzon" target="_blank" rel="noopener noreferrer">Alex Vanderzon</a>.<br />
             See <a href="https://benji.org/annotating" target="_blank" rel="noopener noreferrer">the original post</a> for
             more on the motivation behind the project.
           </p>

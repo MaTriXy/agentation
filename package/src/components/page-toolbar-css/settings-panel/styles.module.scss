@@ -1,3 +1,5 @@
+@use "../../../styles/panel-motion" as motion;
+
 @keyframes cycleTextIn {
   0% {
     opacity: 0;
@@ -66,6 +68,10 @@
 // =============================================================================
 
 .settingsPanel {
+  :where(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--agentation-color-accent);
+    outline-offset: 2px;
+  }
   position: absolute;
   right: 5px;
   bottom: calc(100% + 0.5rem);
@@ -74,9 +80,9 @@
   background: #1c1c1c;
   border-radius: 16px;
   padding: 12px 0;
-  width: 100%;
-  max-width: 253px;
-  min-width: 205px;
+  // The toolbar contracts independently; keep panel contents stable on exit.
+  width: 253px;
+  max-width: calc(100vw - 20px);
   cursor: default;
   opacity: 1;
   box-shadow:
@@ -109,7 +115,6 @@
 
   .settingsHeader,
   .settingsBrand,
-  .settingsBrandSlash,
   .settingsVersion,
   .settingsSection,
   .settingsLabel,
@@ -125,25 +130,11 @@
       border-color 0.25s ease;
   }
 
-  &.enter {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
-    transition:
-      opacity 0.2s ease,
-      transform 0.2s ease,
-      filter 0.2s ease;
-  }
+  @include motion.panel-motion;
 
-  &.exit {
-    opacity: 0;
-    transform: translateY(8px) scale(0.95);
-    filter: blur(5px);
-    pointer-events: none;
-    transition:
-      opacity 0.1s ease,
-      transform 0.1s ease,
-      filter 0.1s ease;
+  &.below {
+    --panel-offset-y: -4px;
+    --panel-origin: top right;
   }
 
   [data-agentation-theme="dark"] & {
@@ -234,23 +225,20 @@
 }
 
 .settingsBrand {
+  display: flex;
+  align-items: center;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.0094em;
-  color: #fff;
+  color: #bbb;
   text-decoration: none;
-}
-
-.settingsBrandSlash {
-  color: var(--agentation-color-accent);
-  transition: color 0.2s ease;
 }
 
 .settingsVersion {
   font-size: 11px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.4);
-  margin-left: auto;
+  margin-left: 6px;
   letter-spacing: -0.0094em;
 }
 
@@ -260,7 +248,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  margin-left: 8px;
+  margin-left: auto;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -533,6 +521,7 @@
   align-items: center;
   gap: 4px;
   height: 24px;
+  border: none;
   background: transparent;
   font-family: inherit;
   line-height: 20px;
@@ -754,7 +743,7 @@
     }
 
     .settingsBrand {
-      color: #E5484D;
+      color: #333;
     }
 
     .settingsVersion {

@@ -1,5 +1,7 @@
 "use client";
 
+import { DocAside, DocHeader, DocNote } from "../components/Documentation";
+
 import { Footer } from "../Footer";
 import { CodeBlock } from "../components/CodeBlock";
 import { WebhooksDiagram } from "../components/WebhooksDiagram";
@@ -8,12 +10,7 @@ export default function WebhooksPage() {
   return (
     <>
       <article className="article">
-        <header>
-          <h1>Webhooks</h1>
-          <p className="tagline">
-            Send annotation events to external services automatically
-          </p>
-        </header>
+        <DocHeader title="Webhooks" description="Send annotation events to external services automatically" />
 
         <section>
           <h2 id="overview">Overview</h2>
@@ -48,11 +45,11 @@ function App() {
   );
 }`}
           />
-          <p style={{ marginTop: "0.75rem", fontSize: "0.8125rem", color: "rgba(0,0,0,0.55)" }}>
+          <DocNote>
             With a webhook URL configured, you have two options: enable Auto-Send to fire events automatically,
             or click &quot;Send Annotations&quot; in the toolbar manually. When Auto-Send is on, the toolbar button
             is hidden.
-          </p>
+          </DocNote>
         </section>
 
         <section>
@@ -60,7 +57,7 @@ function App() {
           <p>
             Webhooks fire for the following events:
           </p>
-          <ul style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.65)" }}>
+          <ul className="docs-list-note">
             <li><code>annotation.add</code> &mdash; New annotation created</li>
             <li><code>annotation.delete</code> &mdash; Annotation deleted</li>
             <li><code>annotation.update</code> &mdash; Annotation comment edited</li>
@@ -90,10 +87,10 @@ function App() {
 }`}
           />
 
-          <h3 style={{ marginTop: "1.5rem" }}>Event-specific payloads</h3>
-          <p style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.65)" }}>
+          <h3>Event-specific payloads</h3>
+          <DocNote>
             <code>annotation.add</code> / <code>annotation.delete</code> / <code>annotation.update</code>
-          </p>
+          </DocNote>
           <CodeBlock
             language="json"
             code={`{
@@ -104,9 +101,9 @@ function App() {
 }`}
           />
 
-          <p style={{ marginTop: "1rem", fontSize: "0.8125rem", color: "rgba(0,0,0,0.65)" }}>
+          <DocNote>
             <code>annotations.clear</code>
-          </p>
+          </DocNote>
           <CodeBlock
             language="json"
             code={`{
@@ -117,9 +114,9 @@ function App() {
 }`}
           />
 
-          <p style={{ marginTop: "1rem", fontSize: "0.8125rem", color: "rgba(0,0,0,0.65)" }}>
+          <DocNote>
             <code>submit</code>
-          </p>
+          </DocNote>
           <CodeBlock
             language="json"
             code={`{
@@ -226,8 +223,7 @@ app.post("/webhook/agentation", (req, res) => {
           />
         </section>
 
-        <section>
-          <h2 id="security">Security Considerations</h2>
+        <DocAside title="Security considerations" id="security">
           <ul>
             <li>
               <strong>Use HTTPS</strong> &mdash; Always use encrypted connections for webhook URLs
@@ -242,14 +238,14 @@ app.post("/webhook/agentation", (req, res) => {
               <strong>Sanitize content</strong> &mdash; Annotation comments may contain user-generated content; sanitize before rendering
             </li>
           </ul>
-        </section>
+        </DocAside>
 
         <section>
           <h2 id="testing">Testing Webhooks</h2>
           <p>
             Tools for testing webhooks during development:
           </p>
-          <ul style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.65)" }}>
+          <ul className="docs-list-note">
             <li>
               <strong>webhook.site</strong> &mdash; Free public endpoint for testing payloads
             </li>
@@ -269,6 +265,16 @@ app.post("/webhook/agentation", (req, res) => {
 
 // Then create annotations and check webhook.site for payloads`}
           />
+        </section>
+        <section>
+          <h2 id="delivery-retries">Server delivery retries</h2>
+          <p>The MCP server sends webhooks in the background. Network errors, timeouts, HTTP 429 and 5xx responses are retried; other unsuccessful responses stop immediately. Browser-configured webhook delivery is separate from this server retry queue.</p>
+          <CodeBlock language="bash" code={`AGENTATION_WEBHOOK_MAX_RETRIES=3
+AGENTATION_WEBHOOK_BASE_DELAY_MS=1000
+AGENTATION_WEBHOOK_MAX_DELAY_MS=30000
+AGENTATION_WEBHOOK_TIMEOUT_MS=10000`} />
+          <p>These are the defaults. Set <code>AGENTATION_WEBHOOK_MAX_RETRIES=0</code> to disable retries. Backoff includes jitter; Retry-After is honored within the maximum delay. Receivers should deduplicate using <code>X-Agentation-Delivery-Id</code>, which stays the same across attempts.</p>
+          <p>The queue is held in memory. Stopping the server cancels pending deliveries; delivery is neither durable nor guaranteed exactly once.</p>
         </section>
       </article>
 

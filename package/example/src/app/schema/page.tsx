@@ -1,37 +1,17 @@
 "use client";
 
+import { DocHeader, DocNote, ReferenceTable } from "../components/Documentation";
+
 import { Footer } from "../Footer";
 import { CodeBlock } from "../components/CodeBlock";
+import annotationSchema from "../../../public/schema/annotation.v1.1.json";
 import { SchemaDiagram } from "../components/SchemaDiagram";
 
 export default function SchemaPage() {
   return (
     <>
       <article className="article">
-        <header>
-          <h1>
-            Annotation Format Schema{" "}
-            <span
-              style={{
-                fontFamily: "var(--font-primary)",
-                fontSize: "0.5em",
-                fontWeight: 500,
-                color: "#E5484D",
-                border: "1px solid #E5484D",
-                borderRadius: "9999px",
-                padding: "0.15em 0.5em",
-                verticalAlign: "middle",
-                position: "relative",
-                top: "-0.1em",
-              }}
-            >
-              v1.1
-            </span>
-          </h1>
-          <p className="tagline">
-            A portable format for structured UI feedback
-          </p>
-        </header>
+        <DocHeader title="Annotation Format Schema" badge="v1.1" description="A portable format for structured UI feedback" />
 
         <section>
           <h2 id="overview">Overview</h2>
@@ -83,10 +63,10 @@ export default function SchemaPage() {
           <p>
             An annotation represents a single piece of feedback attached to a UI element.
           </p>
-          <p style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.55)", marginTop: "0.5rem", marginBottom: "1rem" }}>
+          <DocNote>
             <strong>Note:</strong> The server may add metadata fields (<code>sessionId</code>, <code>createdAt</code>, <code>updatedAt</code>)
             when syncing annotations.
-          </p>
+          </DocNote>
 
           <h3>Required Fields</h3>
           <CodeBlock
@@ -169,9 +149,9 @@ export default function SchemaPage() {
           />
 
           <h3>Browser Component Fields</h3>
-          <p style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.55)", marginBottom: "0.5rem" }}>
+          <DocNote>
             These optional fields are set by the Agentation browser component for UI rendering:
-          </p>
+          </DocNote>
           <CodeBlock
             language="typescript"
             code={`{
@@ -210,6 +190,8 @@ export default function SchemaPage() {
   // Optional context
   reactComponents?: string;
   cssClasses?: string;
+  sourceFile?: string;
+  attributes?: Record<string, string>;
   computedStyles?: string;
   accessibility?: string;
   nearbyText?: string;
@@ -261,6 +243,22 @@ type ThreadMessage = {
         </section>
 
         <section>
+          <h2 id="browser-metadata">Browser metadata</h2>
+          <p>The browser component can add optional identifying attributes, a source-file reference and same-origin frame context. These fields travel with annotations through callbacks and MCP storage; they do not change the required AFS fields.</p>
+          <CodeBlock language="typescript" code={`// Optional fields emitted by the React component
+sourceFile?: string; // path:line:column when available
+attributes?: Record<string, string>;
+frame?: {
+  path: Array<{ index: number; id?: string; url: string }>;
+  x: number; // % of child viewport width
+  y: number; // child document px, or child viewport px if fixed
+  fixed: boolean;
+  boundingBox: { x: number; y: number; width: number; height: number };
+};`} />
+          <p>Frame paths describe the nesting from the top document to the selected element’s document. Frame geometry is kept in child coordinates so a saved single-element marker can follow scrolling without changing its identity.</p>
+        </section>
+
+        <section>
           <h2 id="event-envelope">Event Envelope</h2>
           <p>
             For real-time streaming, annotations are wrapped in an event envelope:
@@ -278,10 +276,10 @@ type ThreadMessage = {
   payload: Annotation | Session | ThreadMessage | ActionRequest;
 };`}
           />
-          <p style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.55)", marginTop: "0.5rem" }}>
+          <DocNote>
             The <code>sequence</code> number enables clients to detect missed events and request replay.
             See <a href="/mcp">MCP</a> for SSE streaming details.
-          </p>
+          </DocNote>
         </section>
 
         <section>
@@ -292,64 +290,7 @@ type ThreadMessage = {
           <CodeBlock
             language="json"
             copyable
-            code={`{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentation.dev/schema/annotation.v1.1.json",
-  "title": "Annotation",
-  "type": "object",
-  "required": ["id", "comment", "elementPath", "timestamp", "x", "y", "element"],
-  "properties": {
-    "id": { "type": "string" },
-    "comment": { "type": "string" },
-    "elementPath": { "type": "string" },
-    "timestamp": { "type": "number" },
-    "x": { "type": "number", "description": "% of viewport width (0-100)" },
-    "y": { "type": "number", "description": "px from document top" },
-    "element": { "type": "string" },
-    "url": { "type": "string", "format": "uri" },
-    "boundingBox": {
-      "type": "object",
-      "properties": {
-        "x": { "type": "number" },
-        "y": { "type": "number" },
-        "width": { "type": "number" },
-        "height": { "type": "number" }
-      },
-      "required": ["x", "y", "width", "height"]
-    },
-    "reactComponents": { "type": "string" },
-    "isFixed": { "type": "boolean" },
-    "isMultiSelect": { "type": "boolean" },
-    "fullPath": { "type": "string" },
-    "nearbyElements": { "type": "string" },
-    "intent": { "enum": ["fix", "change", "question", "approve"] },
-    "severity": { "enum": ["blocking", "important", "suggestion"] },
-    "kind": { "enum": ["feedback", "placement", "rearrange"], "default": "feedback" },
-    "placement": {
-      "type": "object",
-      "properties": {
-        "componentType": { "type": "string" },
-        "width": { "type": "number" },
-        "height": { "type": "number" },
-        "scrollY": { "type": "number" },
-        "text": { "type": "string" }
-      },
-      "required": ["componentType", "width", "height", "scrollY"]
-    },
-    "rearrange": {
-      "type": "object",
-      "properties": {
-        "selector": { "type": "string" },
-        "label": { "type": "string" },
-        "tagName": { "type": "string" },
-        "originalRect": { "$ref": "#/properties/boundingBox" },
-        "currentRect": { "$ref": "#/properties/boundingBox" }
-      },
-      "required": ["selector", "label", "tagName", "originalRect", "currentRect"]
-    },
-    "status": { "enum": ["pending", "acknowledged", "resolved", "dismissed"] }
-  }
-}`}
+            code={JSON.stringify(annotationSchema, null, 2)}
           />
         </section>
 
@@ -420,9 +361,9 @@ type ThreadMessage = {
 **Feedback:** Button is cut off on mobile viewport
 **Severity:** blocking`}
           />
-          <p style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.55)", marginTop: "0.5rem" }}>
+          <DocNote>
             See <a href="/output">Output Formats</a> for detail level options (Compact → Forensic).
-          </p>
+          </DocNote>
         </section>
 
         <section>
@@ -430,26 +371,27 @@ type ThreadMessage = {
           <p>
             Tools that emit or consume this format:
           </p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem", marginTop: "0.75rem" }}>
+          <ReferenceTable label="Implementations">
+            <thead><tr><th scope="col">Project</th><th scope="col">Description</th></tr></thead>
             <tbody>
               <tr>
-                <td style={{ padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 500 }}>
+                <td>
                   Agentation (React)
                 </td>
-                <td style={{ padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.55)", textAlign: "right" }}>
+                <td>
                   Click-to-annotate toolbar for React apps
                 </td>
               </tr>
               <tr>
-                <td style={{ padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 500 }}>
+                <td>
                   Agentation MCP Server
                 </td>
-                <td style={{ padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.55)", textAlign: "right" }}>
+                <td>
                   Exposes annotations to Claude Code and other MCP clients
                 </td>
               </tr>
             </tbody>
-          </table>
+          </ReferenceTable>
         </section>
 
         <section>
@@ -457,13 +399,13 @@ type ThreadMessage = {
           <p>
             To emit Agentation Format annotations from your tool:
           </p>
-          <ol style={{ paddingLeft: "1.25rem" }}>
+          <ol>
             <li>Capture the required fields: <code>id</code>, <code>comment</code>, <code>elementPath</code>, <code>timestamp</code>, <code>x</code>, <code>y</code>, <code>element</code></li>
             <li>Add recommended fields for better agent accuracy: <code>url</code>, <code>boundingBox</code></li>
             <li>For React apps, traverse the fiber tree to get <code>reactComponents</code></li>
             <li>Output as JSON for MCP/API consumption, or markdown for chat pasting</li>
           </ol>
-          <p style={{ marginTop: "0.75rem" }}>
+          <p>
             See the <a href="https://github.com/benjitaylor/agentation">Agentation source</a> for
             reference implementations of element detection and React component traversal.
           </p>
@@ -485,12 +427,13 @@ type ThreadMessage = {
         <section>
           <h2 id="versioning">Versioning</h2>
           <p>
-            Current version: <span style={{ color: "#4a9eff", fontFamily: "'SF Mono', monospace" }}>v1.1</span>
+            Current version: <code>v1.1</code>
           </p>
-          <p style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.55)", marginTop: "0.75rem" }}>
-            Schema URL: <code style={{ wordBreak: "break-word" }}>https://agentation.dev/schema/annotation.v1.1.json</code>
-          </p>
+          <DocNote>
+            Schema URL: <a href="https://agentation.com/schema/annotation.v1.1.json">annotation.v1.1.json</a>
+          </DocNote>
         </section>
+
       </article>
 
       <Footer />

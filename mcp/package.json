@@ -1,6 +1,6 @@
 {
   "name": "agentation-mcp",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "MCP server for Agentation - visual feedback for AI coding agents",
   "license": "PolyForm-Shield-1.0.0",
   "main": "./dist/index.js",
@@ -30,20 +30,21 @@
     "watch": "tsup --watch",
     "dev": "pnpm build && pnpm watch",
     "start": "pnpm build && node dist/cli.js server",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "test": "tsup --config test/tsup.config.ts && node --test test/*.test.cjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^12.6.2",
-    "zod": "^3.23.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "better-sqlite3": "^12.11.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^20.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "@types/node": "^20.19.43",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

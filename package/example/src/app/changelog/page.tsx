@@ -1,5 +1,7 @@
 "use client";
 
+import { DocHeader } from "../components/Documentation";
+
 import { Footer } from "../Footer";
 import { ReactNode } from "react";
 
@@ -13,6 +15,7 @@ interface Change {
 interface Release {
   version: string;
   date: string;
+  published?: boolean;
   summary?: ReactNode;
   changes?: Change[];
 }
@@ -24,11 +27,36 @@ const badgeLabels: Record<ChangeType, string> = {
   removed: "Removed",
 };
 
-function isMajorVersion(version: string): boolean {
-  return version.endsWith(".0.0");
-}
-
 const releases: Release[] = [
+  {
+    version: "3.1.0",
+    date: "September 20, 2026",
+    published: false,
+    changes: [
+      { type: "added", text: <>An optional app name and configurable <a href="/api#copy-formats" className="styled-link">Copy formats</a> for source paths, CSS classes or identifying attributes. Attribute-only selections can be saved without a comment.</> },
+      { type: "added", text: <>An <a href="/api#open-in-editor" className="styled-link">Open in editor callback</a> for connecting available source locations to your editor.</> },
+      { type: "added", text: <>A <a href="/api#host-overlays" className="styled-link">portalContainer prop</a> for integrating with host modals and popovers.</> },
+      { type: "added", text: <>Selection inside <a href="/api#embedded-pages" className="styled-link">same-origin iframes</a>, including nested frames, scaling, scrolling and navigation.</> },
+      { type: "added", text: <>Opt-in <a href="/api#routing-and-shortcuts" className="styled-link">hash routing</a> keeps feedback, layout state and MCP sessions separate by route. Global keyboard shortcuts can be disabled without disabling toolbar buttons or popup Enter/Escape.</> },
+      { type: "improved", text: "The toolbar is isolated from host page styles using Shadow DOM. Importing Agentation no longer changes page styles or timers." },
+      { type: "improved", text: "Deep selection through overlays and open shadow roots works with Cmd/Ctrl-click and drag multiselect. Legacy Cmd+Shift-click remains supported." },
+      { type: "improved", text: "Accessible control names, native keyboard activation and focus return. Single-key shortcuts leave the page alone while Agentation is closed." },
+      { type: "improved", text: "The toolbar icon morphs between open and closed states. Settings and Layout panels share consistent entrance and exit motion." },
+      { type: "improved", text: "Annotation previews expand into their editor using the same text, with animated number-to-pencil hover and marker entrances and exits." },
+      { type: "fixed", text: "Clear all completes with large batches. Copy and Send preserve feedback added or edited while an action is pending, and repeated actions keep their own success or failure feedback." },
+      { type: "fixed", text: "Annotation popups stay above the toolbar. Hover labels and toolbar positioning respect viewport edges, including after dragging." },
+      { type: "fixed", text: "Safari uses the same toolbar spacing as other browsers, and the close icon stays aligned at browser zoom." },
+      { type: "fixed", text: "Saved iframe markers keep their number as other notes scroll out of view. Picking and marker positions also work when Agentation itself is mounted inside an iframe. The badge keeps the total saved count." },
+      { type: "fixed", text: "Picking no longer activates underlying host controls when Block page interactions is enabled. Clipboard fallback restores focus, and failed or empty Copy output preserves the clipboard and feedback." },
+      { type: "fixed", text: "Callback-only Send is available, waits for asynchronous delivery and keeps feedback when delivery fails." },
+      { type: "fixed", text: "A React import interop crash affecting some React 19 setups. Source extraction also rejects misleading generated bundle locations." },
+      { type: "fixed", text: "Layout notes, edited placement text and source locations persist through synchronization. Resolved notes stay resolved after reconnection." },
+      { type: "fixed", text: "Edits and deletions made while a session loads or a note uploads survive late server responses." },
+      { type: "fixed", text: "Placed components and existing sections move together when selected as a group. Layout component choices and the new-page toggle support keyboard activation." },
+      { type: "improved", text: <>The companion <a href="/mcp" className="styled-link">MCP server</a> handles concurrent events, reconnects and cancelled watch requests more reliably. Event history is bounded, browser-origin rules are consistent, and temporary webhook failures are retried.</> },
+      { type: "fixed", text: "The MCP server’s declared Node.js minimum now matches its existing SQLite requirement: Node.js 20 or newer. Node.js 24 LTS is recommended." },
+    ],
+  },
   {
     version: "3.0.2",
     date: "March 24, 2026",
@@ -217,77 +245,27 @@ export default function ChangelogPage() {
   return (
     <>
       <article className="article">
-        <header>
-          <h1>Changelog</h1>
-          <p className="tagline">Release history</p>
-        </header>
+        <DocHeader title="Changelog" description="Release history" />
 
-        {releases.map((release, i) => (
-          <section key={release.version}>
-            <h2
-              style={
-                isMajorVersion(release.version)
-                  ? { fontSize: "1.125rem" }
-                  : undefined
-              }
-            >
-              <a
-                href={`https://www.npmjs.com/package/agentation/v/${release.version}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: "inherit",
-                  textDecoration: "none",
-                }}
-              >
-                {isMajorVersion(release.version) ? (
-                  <span className="sketchy-underline" style={{ "--marker-color": "#febc2e" } as React.CSSProperties}>
-                    {release.version}
-                  </span>
-                ) : (
-                  release.version
-                )}
-              </a>
-              <span
-                style={{
-                  fontWeight: 400,
-                  color: "rgba(0, 0, 0, 0.35)",
-                  marginLeft: "0",
-                  ...(isMajorVersion(release.version) && { fontSize: "0.8125rem" }),
-                }}
-              >
-                {release.date}
-              </span>
-            </h2>
-
+        {releases.map((release) => (
+          <section key={release.version} className="release-entry" id={`v${release.version}`}>
+            <div className="release-heading">
+              <h2>{release.published === false ? release.version : (
+                <a href={`https://www.npmjs.com/package/agentation/v/${release.version}`} target="_blank" rel="noopener noreferrer">{release.version}</a>
+              )}</h2>
+              <span>{release.date}</span>
+            </div>
             {release.summary && <p>{release.summary}</p>}
-
-            {release.changes && release.changes.length > 0 && (
-              <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {release.changes && (
+              <div className="release-changes">
                 {(["added", "improved", "fixed", "removed"] as ChangeType[]).map((type) => {
-                  const items = release.changes!.filter((c) => c.type === type);
-                  if (items.length === 0) return null;
-                  return (
+                  const items = release.changes!.filter((change) => change.type === type);
+                  return items.length ? (
                     <div key={type}>
-                      <div
-                        style={{
-                          fontSize: "0.6875rem",
-                          fontWeight: 500,
-                          color: "rgba(0, 0, 0, 0.4)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        {badgeLabels[type]}
-                      </div>
-                      <ul>
-                        {items.map((change, j) => (
-                          <li key={j}>{change.text}</li>
-                        ))}
-                      </ul>
+                      <h3 className="release-change-heading">{badgeLabels[type]}</h3>
+                      <ul>{items.map((change, index) => <li key={index}>{change.text}</li>)}</ul>
                     </div>
-                  );
+                  ) : null;
                 })}
               </div>
             )}

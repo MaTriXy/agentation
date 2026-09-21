@@ -61,6 +61,13 @@ class EventBus {
       payload,
     };
 
+    return this.publish(event);
+  }
+
+  /** Publish an event after its storage transaction has committed. */
+  publish(event: AFSEvent): AFSEvent {
+    globalSequence = Math.max(globalSequence, event.sequence);
+
     // Notify global subscribers
     for (const handler of this.handlers) {
       try {
@@ -71,7 +78,7 @@ class EventBus {
     }
 
     // Notify session-specific subscribers
-    const sessionHandlers = this.sessionHandlers.get(sessionId);
+    const sessionHandlers = this.sessionHandlers.get(event.sessionId);
     if (sessionHandlers) {
       for (const handler of sessionHandlers) {
         try {
@@ -96,7 +103,7 @@ class EventBus {
    * Set sequence from persisted state (for server restart).
    */
   setSequence(seq: number): void {
-    globalSequence = seq;
+    globalSequence = Math.max(globalSequence, seq);
   }
 }
 

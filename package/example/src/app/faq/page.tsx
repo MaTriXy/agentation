@@ -1,5 +1,7 @@
 "use client";
 
+import { DocHeader } from "../components/Documentation";
+
 import { useState } from "react";
 import { Footer } from "../Footer";
 
@@ -56,7 +58,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Can I pause animations?",
-        answer: "Yes. Click <svg style=\"display:inline-block;vertical-align:-0.45em;width:1.5em;height:1.5em;margin:0 -0.1em\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"><path d=\"M8 6L8 18\" /><path d=\"M16 18L16 6\" /></svg> to freeze all animations on the page — CSS animations, JavaScript-driven motion, and videos all pause instantly. Unfreeze to resume exactly where things left off."
+        answer: "Yes. Click <svg style=\"display:inline-block;vertical-align:-0.45em;width:1.5em;height:1.5em;margin:0 -0.1em\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"><path d=\"M8 6L8 18\" /><path d=\"M16 18L16 6\" /></svg> to pause supported page motion, including CSS animations, Web Animations, and videos. Custom animation engines may require their own pause controls."
       },
       {
         question: "Can I customize marker colors?",
@@ -64,11 +66,11 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Where are annotations stored?",
-        answer: "By default, annotations are stored in <code>localStorage</code>, keyed by page pathname. They persist across page refreshes but are cleared after 7 days. With Agent Sync enabled, annotations are stored on the MCP server instead, which persists across pages and sessions."
+        answer: "By default, annotations are stored in <code>localStorage</code>, keyed by page pathname. They persist across page refreshes but are cleared after 7 days. With Agent Sync enabled, annotations are also synchronized to the MCP server. Server persistence depends on its configured storage backend. Use <code>useHashLocation</code> to keep notes separate for hash-based routes."
       },
       {
         question: "What is Agent Sync?",
-        answer: "Agent Sync connects the browser toolbar to an MCP server, enabling real-time sync between reviewers and AI agents. Annotations persist across pages and can be accessed via MCP tools. Run <code>npx add-mcp \"npx -y agentation-mcp server\"</code> to configure your agent, or <code>npx agentation-mcp init</code> for Claude Code specifically, then enable Agent Sync in settings."
+        answer: "Agent Sync connects the browser toolbar to an MCP server, enabling real-time sync between reviewers and AI agents. Annotations persist across pages and can be accessed via MCP tools. Run <code>npx add-mcp \"npx -y agentation-mcp server\"</code> to configure your agent, or <code>npx agentation-mcp init</code> for Claude Code specifically, then set <code>endpoint=\"http://localhost:4747\"</code> on the React component. Keep the agent running and add a note to check the connection."
       },
     ]
   },
@@ -81,7 +83,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Which AI agents work with Agentation?",
-        answer: "Any AI coding agent that accepts text input. The markdown output is agent-agnostic and works with Claude, GPT-4, Cursor, Copilot, and others. Just paste the copied output into your agent's chat."
+        answer: "Any agent that accepts text can read the copied output, including Claude, Codex, Gemini, Grok, and Copilot. For direct feedback sync, connect a client that supports local stdio MCP, such as Claude Code, Codex, Gemini CLI, or Grok Build. See the <a href=\"/install#agent-integration\" class=\"faq-link\">setup guide</a>."
       },
       {
         question: "Can multiple people share annotations?",
@@ -110,11 +112,11 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Should I include it in production?",
-        answer: "You can, but it's designed as a development tool. We recommend conditionally rendering it only in development or behind a feature flag. The toolbar is invisible to users until activated."
+        answer: "You can, but it's designed as a development tool. We recommend conditionally rendering it only in development or behind a feature flag. The launcher is visible when the component is mounted."
       },
       {
         question: "Can I annotate iframes or shadow DOM?",
-        answer: "Currently, Agentation only annotates elements in the main document. Iframes and shadow DOM content are not accessible due to browser security restrictions."
+        answer: "Agentation can select elements inside open shadow roots and same-origin iframes, including nested frames. Closed shadow roots and cross-origin frames remain inaccessible. For a cross-origin app, mount Agentation inside that app instead."
       },
       {
         question: "I'm having issues with better-sqlite3 in the MCP server",
@@ -147,7 +149,9 @@ function FAQToggle({ item, isOpen, onToggle }: { item: FAQItem; isOpen: boolean;
       </button>
       <div className={`faq-answer ${isOpen ? 'open' : ''}`}>
         <div className="faq-answer-inner">
-          <p dangerouslySetInnerHTML={{ __html: item.answer }} />
+          {item.answer.split("</p><p>").map((paragraph, index) => (
+            <p key={index} dangerouslySetInnerHTML={{ __html: paragraph }} />
+          ))}
         </div>
       </div>
     </div>
@@ -163,91 +167,9 @@ export default function FAQPage() {
 
   return (
     <>
-      <style>{`
-        .faq-category {
-          margin-top: 0.5rem;
-        }
-        .faq-category + .faq-category {
-          margin-top: 1.5rem;
-        }
-        .faq-category h2 {
-          margin-bottom: 0.25rem;
-        }
-        .faq-item {
-          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-        }
-        .faq-item:last-child {
-          border-bottom: none;
-        }
-        .faq-question {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          padding: 0.625rem 0;
-          font-size: 0.75rem;
-          font-weight: 450;
-          color: rgba(0, 0, 0, 0.55);
-          text-align: left;
-          cursor: pointer;
-          transition: color 0.15s ease;
-        }
-        .faq-question:hover {
-          color: rgba(0, 0, 0, 0.8);
-        }
-        .faq-icon {
-          flex-shrink: 0;
-          color: rgba(0, 0, 0, 0.3);
-          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
-        }
-        .faq-icon.open {
-          transform: rotate(180deg);
-          color: rgba(0, 0, 0, 0.5);
-        }
-        .faq-answer {
-          display: grid;
-          grid-template-rows: 0fr;
-          transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .faq-answer.open {
-          grid-template-rows: 1fr;
-        }
-        .faq-answer-inner {
-          overflow: hidden;
-        }
-        .faq-answer-inner p {
-          padding-bottom: 1rem;
-          font-size: 0.8125rem;
-          line-height: 1.6;
-          color: rgba(0, 0, 0, 0.55);
-        }
-        .faq-answer-inner p + p {
-          padding-top: 0;
-          margin-top: -0.5rem;
-        }
-        .faq-answer-inner code {
-          font-family: "SF Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
-          font-size: 0.75rem;
-          background: rgba(0, 0, 0, 0.04);
-          padding: 0.1rem 0.3rem;
-          border-radius: 0.25rem;
-          color: rgba(0, 0, 0, 0.65);
-        }
-        .faq-link {
-          color: #2480ed;
-          text-decoration: none;
-          transition: color 0.15s ease;
-        }
-        .faq-link:hover {
-          color: #74b1fd;
-        }
-      `}</style>
+
       <article className="article">
-        <header>
-          <h1>FAQ</h1>
-          <p className="tagline">Common questions about Agentation</p>
-        </header>
+        <DocHeader title="FAQ" description="Common questions about Agentation" />
 
         {faqCategories.map((category, catIndex) => (
           <div key={catIndex} className="faq-category">

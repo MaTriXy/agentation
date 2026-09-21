@@ -1,5 +1,8 @@
 "use client";
 
+import { DocHeader, DocNote, ReferenceItem, ReferenceList, ReferenceTable } from "../components/Documentation";
+
+import { ReleaseGuides } from "../components/ReleaseGuides";
 import { Footer } from "../Footer";
 import { CodeBlock } from "../components/CodeBlock";
 
@@ -7,10 +10,7 @@ export default function APIPage() {
   return (
     <>
       <article className="article">
-        <header>
-          <h1>API</h1>
-          <p className="tagline">Programmatic access for developers</p>
-        </header>
+        <DocHeader title="API" description="Programmatic access for developers" />
 
         <section>
           <h2 id="overview">Overview</h2>
@@ -28,86 +28,65 @@ export default function APIPage() {
 
         <section>
           <h2 id="props">Props</h2>
-          <div className="props-list">
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onAnnotationAdd</code>
-                <span className="prop-type">(annotation: Annotation) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Called when an annotation is created</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onAnnotationDelete</code>
-                <span className="prop-type">(annotation: Annotation) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Called when an annotation is deleted</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onAnnotationUpdate</code>
-                <span className="prop-type">(annotation: Annotation) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Called when an annotation comment is edited</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onAnnotationsClear</code>
-                <span className="prop-type">(annotations: Annotation[]) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Called when all annotations are cleared</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onCopy</code>
-                <span className="prop-type">(markdown: string) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Callback with the markdown output when copy is clicked</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onSubmit</code>
-                <span className="prop-type">(output: string, annotations: Annotation[]) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Called when &quot;Send Annotations&quot; is clicked</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">copyToClipboard</code>
-                <span className="prop-type">boolean</span>
-                <span className="prop-default">default: true</span>
-              </div>
-              <p className="prop-desc">Set to false to prevent writing to clipboard (if handling via onCopy)</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">endpoint</code>
-                <span className="prop-type">string</span>
-              </div>
-              <p className="prop-desc">MCP server URL for syncing annotations</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">sessionId</code>
-                <span className="prop-type">string</span>
-              </div>
-              <p className="prop-desc">Pre-existing session ID to use</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onSessionCreated</code>
-                <span className="prop-type">(sessionId: string) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Called when a new session is created</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">webhookUrl</code>
-                <span className="prop-type">string</span>
-              </div>
-              <p className="prop-desc">Webhook URL to receive annotation events</p>
-            </div>
-          </div>
+          <ReferenceList>
+            <ReferenceItem name="onAnnotationAdd" type="(annotation: Annotation) =&gt; void">
+              Called when an annotation is created
+            </ReferenceItem>
+            <ReferenceItem name="onAnnotationDelete" type="(annotation: Annotation) =&gt; void">
+              Called when an annotation is deleted
+            </ReferenceItem>
+            <ReferenceItem name="onAnnotationUpdate" type="(annotation: Annotation) =&gt; void">
+              Called when an annotation comment is edited
+            </ReferenceItem>
+            <ReferenceItem name="onAnnotationsClear" type="(annotations: Annotation[]) =&gt; void">
+              Called when all annotations are cleared
+            </ReferenceItem>
+            <ReferenceItem name="onCopy" type="(output: string) =&gt; void">
+              Receives the formatted output after a Copy attempt, even if clipboard access fails.
+            </ReferenceItem>
+            <ReferenceItem name="onSubmit" type="(output: string, annotations: Annotation[]) =&gt; void">
+              Receives structured markdown and annotations when Send is clicked. Async callbacks are awaited; failures preserve feedback.
+            </ReferenceItem>
+            <ReferenceItem name="copyToClipboard" type="boolean" defaultValue="true">
+              Set to false to prevent writing to clipboard (if handling via onCopy)
+            </ReferenceItem>
+            <ReferenceItem name="endpoint" type="string">
+              MCP server URL for syncing annotations
+            </ReferenceItem>
+            <ReferenceItem name="sessionId" type="string">
+              Pre-existing session ID to use
+            </ReferenceItem>
+            <ReferenceItem name="onSessionCreated" type="(sessionId: string) =&gt; void">
+              Called when a new session is created
+            </ReferenceItem>
+            <ReferenceItem name="webhookUrl" type="string">
+              Webhook URL to receive annotation events
+            </ReferenceItem>
+            <ReferenceItem name="className" type="string">
+              Apply custom positioning and z-index to the toolbar host.
+            </ReferenceItem>
+            <ReferenceItem name="useHashLocation" type="boolean" defaultValue="false">
+              Keep separate feedback, layout state and sessions for hash-based routes.
+            </ReferenceItem>
+            <ReferenceItem name="appName" type="string">
+              Identify the app in copied and submitted feedback.
+            </ReferenceItem>
+            <ReferenceItem name="enableKeyboardShortcuts" type="boolean" defaultValue="true">
+              Enable global shortcuts. Popup Enter/Escape and keyboard activation of buttons remain available.
+            </ReferenceItem>
+            <ReferenceItem name="identifyingAttributes" type="readonly string[]">
+              Replace the default list of identifying attributes captured from selected elements.
+            </ReferenceItem>
+            <ReferenceItem name="copyFormat" type={'"markdown" | "source" | "classes" | { attribute: string }'} defaultValue="&quot;markdown&quot;">
+              Choose full feedback, source paths, classes or an attribute value. Changes Copy only.
+            </ReferenceItem>
+            <ReferenceItem name="onOpenSource" type="(sourceFile: string) =&gt; void">
+              Show Open in editor when a source location is available. Your callback chooses the editor integration.
+            </ReferenceItem>
+            <ReferenceItem name="portalContainer" type="HTMLElement | ShadowRoot | null" defaultValue="document.body">
+              Keep the toolbar and popup inside a host overlay’s focus boundary.
+            </ReferenceItem>
+          </ReferenceList>
         </section>
 
         <section>
@@ -132,6 +111,8 @@ function App() {
 }`}
           />
         </section>
+
+        <ReleaseGuides />
 
         <section>
           <h2 id="annotation-type">Annotation type</h2>
@@ -161,6 +142,8 @@ function App() {
   // Context (varies by output format)
   reactComponents?: string;   // Component tree
   cssClasses?: string;
+  sourceFile?: string;        // path:line:column when available
+  attributes?: Record<string, string>; // Captured identifying attributes
   computedStyles?: string;
   accessibility?: string;
   nearbyText?: string;
@@ -198,99 +181,103 @@ function App() {
             The <code>agentation-mcp</code> server provides a REST API for programmatic access:
           </p>
 
-          <h3 style={{ marginTop: "1.25rem" }}>Sessions</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem" }}>
+          <h3>Sessions</h3>
+          <ReferenceTable label="Sessions">
+            <thead><tr><th scope="col">Method</th><th scope="col">Endpoint</th><th scope="col">Description</th></tr></thead>
             <tbody>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", width: "5rem", color: "rgba(0,0,0,0.4)" }}>POST</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/sessions</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Create a new session</td>
+                <td><span className="docs-http-method">POST</span></td>
+                <td><code>/sessions</code></td>
+                <td>Create a new session</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/sessions</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>List all sessions</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/sessions</code></td>
+                <td>List all sessions</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem" }}>/sessions/:id</td>
-                <td style={{ padding: "0.375rem 0", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Get session with annotations</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/sessions/:id</code></td>
+                <td>Get session with annotations</td>
               </tr>
             </tbody>
-          </table>
+          </ReferenceTable>
 
-          <h3 style={{ marginTop: "1.25rem" }}>Annotations</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem" }}>
+          <h3>Annotations</h3>
+          <ReferenceTable label="Annotations">
+            <thead><tr><th scope="col">Method</th><th scope="col">Endpoint</th><th scope="col">Description</th></tr></thead>
             <tbody>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", width: "5rem", color: "rgba(0,0,0,0.4)" }}>POST</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/sessions/:id/annotations</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Add annotation</td>
+                <td><span className="docs-http-method">POST</span></td>
+                <td><code>/sessions/:id/annotations</code></td>
+                <td>Add annotation</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/annotations/:id</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Get annotation</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/annotations/:id</code></td>
+                <td>Get annotation</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>PATCH</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/annotations/:id</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Update annotation</td>
+                <td><span className="docs-http-method">PATCH</span></td>
+                <td><code>/annotations/:id</code></td>
+                <td>Update annotation</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>DELETE</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/annotations/:id</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Delete annotation</td>
+                <td><span className="docs-http-method">DELETE</span></td>
+                <td><code>/annotations/:id</code></td>
+                <td>Delete annotation</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>POST</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/annotations/:id/thread</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Add thread message</td>
+                <td><span className="docs-http-method">POST</span></td>
+                <td><code>/annotations/:id/thread</code></td>
+                <td>Add thread message</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/sessions/:id/pending</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Get pending annotations</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/sessions/:id/pending</code></td>
+                <td>Get pending annotations</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem" }}>/pending</td>
-                <td style={{ padding: "0.375rem 0", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Get all pending annotations</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/pending</code></td>
+                <td>Get all pending annotations</td>
               </tr>
             </tbody>
-          </table>
+          </ReferenceTable>
 
-          <h3 style={{ marginTop: "1.25rem" }}>Events (SSE)</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem" }}>
+          <h3>Events (SSE)</h3>
+          <ReferenceTable label="Events (SSE)">
+            <thead><tr><th scope="col">Method</th><th scope="col">Endpoint</th><th scope="col">Description</th></tr></thead>
             <tbody>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", width: "5rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/sessions/:id/events</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Session event stream</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/sessions/:id/events</code></td>
+                <td>Session event stream</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem" }}>/events</td>
-                <td style={{ padding: "0.375rem 0", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Global event stream (optionally filter with <code>?domain=...</code>)</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/events</code></td>
+                <td>Global event stream (optionally filter with <code>?domain=...</code>)</td>
               </tr>
             </tbody>
-          </table>
+          </ReferenceTable>
 
-          <h3 style={{ marginTop: "1.25rem" }}>Health</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem" }}>
+          <h3>Health</h3>
+          <ReferenceTable label="Health">
+            <thead><tr><th scope="col">Method</th><th scope="col">Endpoint</th><th scope="col">Description</th></tr></thead>
             <tbody>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem", width: "5rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>/health</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Health check</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/health</code></td>
+                <td>Health check</td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem", color: "rgba(0,0,0,0.4)" }}>GET</td>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem" }}>/status</td>
-                <td style={{ padding: "0.375rem 0", color: "rgba(0,0,0,0.5)", textAlign: "right" }}>Server status</td>
+                <td><span className="docs-http-method">GET</span></td>
+                <td><code>/status</code></td>
+                <td>Server status</td>
               </tr>
             </tbody>
-          </table>
+          </ReferenceTable>
         </section>
 
         <section>
@@ -312,8 +299,8 @@ curl -N "http://localhost:4747/events?domain=localhost:3001"
 # Reconnect after disconnect (replay missed events)
 curl -N -H "Last-Event-ID: 42" http://localhost:4747/sessions/:id/events`}
           />
-          <h3 style={{ marginTop: "1.25rem" }}>Event types</h3>
-          <ul style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.65)", marginTop: "0.5rem" }}>
+          <h3>Event types</h3>
+          <ul className="docs-list-note">
             <li><code>annotation.created</code> &mdash; New annotation added (includes <code>kind</code> field for design annotations)</li>
             <li><code>annotation.updated</code> &mdash; Annotation modified (comment, status, design data, etc.)</li>
             <li><code>annotation.deleted</code> &mdash; Annotation removed</li>
@@ -328,27 +315,27 @@ curl -N -H "Last-Event-ID: 42" http://localhost:4747/sessions/:id/events`}
 
         <section>
           <h2 id="environment-variables">Environment Variables</h2>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem", marginTop: "1rem" }}>
+          <ReferenceTable label="Environment Variables">
             <thead>
               <tr>
-                <th style={{ padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.1)", textAlign: "left", fontWeight: 500 }}>Variable</th>
-                <th style={{ padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.1)", textAlign: "left", fontWeight: 500 }}>Description</th>
-                <th style={{ padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.1)", textAlign: "left", fontWeight: 500 }}>Default</th>
+                <th scope="col">Variable</th>
+                <th scope="col">Description</th>
+                <th scope="col">Default</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>AGENTATION_STORE</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "rgba(0,0,0,0.6)" }}>Storage backend (<code>memory</code> or <code>sqlite</code>)</td>
-                <td style={{ padding: "0.375rem 0", borderBottom: "1px solid rgba(0,0,0,0.06)", fontFamily: "monospace", fontSize: "0.6875rem" }}>sqlite</td>
+                <td><code>AGENTATION_STORE</code></td>
+                <td>Storage backend (<code>memory</code> or <code>sqlite</code>)</td>
+                <td><code>sqlite</code></td>
               </tr>
               <tr>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem" }}>AGENTATION_EVENT_RETENTION_DAYS</td>
-                <td style={{ padding: "0.375rem 0", color: "rgba(0,0,0,0.6)" }}>Days to keep events</td>
-                <td style={{ padding: "0.375rem 0", fontFamily: "monospace", fontSize: "0.6875rem" }}>7</td>
+                <td><code>AGENTATION_EVENT_RETENTION_DAYS</code></td>
+                <td>Days to keep events</td>
+                <td><code>7</code></td>
               </tr>
             </tbody>
-          </table>
+          </ReferenceTable>
         </section>
 
         <section>
@@ -376,55 +363,19 @@ startHttpServer(4747);
 // Start MCP server (connects via stdio)
 await startMcpServer('http://localhost:4747');`}
           />
-          <p style={{ marginTop: "0.75rem", fontSize: "0.8125rem" }}>
+          <DocNote>
             See <a href="/mcp">MCP Server</a> for AI agent integration and available tools.
-          </p>
+          </DocNote>
+        </section>
+        <section>
+          <h2 id="memory-event-history">In-memory event history</h2>
+          <p>When <code>AGENTATION_STORE=memory</code>, these settings bound event replay history. They do not delete current sessions or annotations and do not change SQLite retention.</p>
+          <CodeBlock language="bash" code={`AGENTATION_MAX_EVENTS=10000
+AGENTATION_EVENT_TTL_MS=3600000
+AGENTATION_CLEANUP_INTERVAL_MS=300000`} />
+          <p>The defaults retain up to 10,000 events for one hour, with background cleanup every five minutes. Reads also remove expired events. Invalid values fall back to these defaults.</p>
         </section>
       </article>
-
-      <style>{`
-        .props-list {
-          display: flex;
-          flex-direction: column;
-        }
-        .prop-item {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-          padding: 0.625rem 0;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-        }
-        .prop-item:last-child {
-          border-bottom: none;
-        }
-        .prop-header {
-          display: flex;
-          align-items: baseline;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-        }
-        .prop-name {
-          font-size: 0.8125rem;
-          font-family: "SF Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
-          color: rgba(0, 0, 0, 0.8);
-        }
-        .prop-type {
-          font-size: 0.75rem;
-          font-family: "SF Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
-          color: rgba(0, 0, 0, 0.4);
-        }
-        .prop-default {
-          font-size: 0.75rem;
-          color: rgba(0, 0, 0, 0.4);
-        }
-        .prop-desc {
-          font-size: 0.8125rem;
-          font-weight: 450;
-          line-height: 1.5;
-          color: rgba(0, 0, 0, 0.55);
-          margin: 0;
-        }
-      `}</style>
 
       <Footer />
     </>

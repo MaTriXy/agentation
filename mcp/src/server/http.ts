@@ -25,6 +25,8 @@ import {
   getEventsSince,
 } from "./store.js";
 import { eventBus } from "./events.js";
+import { createCorsPolicy } from "./cors.js";
+import { createWebhookDispatcher, type WebhookDispatcher } from "./webhooks.js";
 import type { Annotation, AFSEvent, ActionRequest } from "../types.js";
 
 /**
@@ -83,9 +85,9 @@ function createMcpSession(): { server: Server; transport: StreamableHTTPServerTr
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
-  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+  server.setRequestHandler(CallToolRequestSchema, async (req, context) => {
     try {
-      return await handleTool(req.params.name, req.params.arguments);
+      return await handleTool(req.params.name, req.params.arguments, context.signal);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       return toolError(message);
@@ -126,14 +128,14 @@ function getWebhookUrls(): string[] {
     urls.push(...parsed);
   }
 
-  return urls;
+  return [...new Set(urls.map(url => url.trim()).filter(Boolean))];
 }
 
 /**
  * Send webhook notification for an action request.
  * Fire-and-forget: doesn't wait for response, logs errors but doesn't throw.
  */
-function sendWebhooks(actionRequest: ActionRequest): void {
+function sendWebhooks(actionRequest: ActionRequest, dispatcher: WebhookDispatcher): void {
   const webhookUrls = getWebhookUrls();
 
   if (webhookUrls.length === 0) {
@@ -143,23 +145,11 @@ function sendWebhooks(actionRequest: ActionRequest): void {
   const payload = JSON.stringify(actionRequest);
 
   for (const url of webhookUrls) {
-    // Fire and forget - use .then().catch() instead of await
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "Agentation-Webhook/1.0",
-      },
-      body: payload,
-    })
-      .then((res) => {
-        log(
-          `[Webhook] POST ${url} -> ${res.status} ${res.statusText}`
-        );
-      })
-      .catch((err) => {
-        console.error(`[Webhook] POST ${url} failed:`, (err as Error).message);
-      });
+    void dispatcher.send(url, payload).then((result) => {
+      log(`[Webhook] ${result.ok ? "Delivered" : result.cancelled ? "Cancelled" : "Failed"} after ${result.attempts} attempt(s)${result.status ? `: HTTP ${result.status}` : ""}`);
+    }).catch((err) => {
+      log(`[Webhook] Delivery failed: ${(err as Error).message}`);
+    });
   }
 
   log(
@@ -195,9 +185,6 @@ async function parseBody<T>(req: IncomingMessage): Promise<T> {
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
   });
   res.end(JSON.stringify(data));
 }
@@ -214,10 +201,6 @@ function sendError(res: ServerResponse, status: number, message: string): void {
  */
 function handleCors(res: ServerResponse): void {
   res.writeHead(204, {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Accept, Mcp-Session-Id",
-    "Access-Control-Expose-Headers": "Mcp-Session-Id",
     "Access-Control-Max-Age": "86400",
   });
   res.end();
@@ -270,7 +253,6 @@ async function proxyToCloud(
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
       });
 
       const reader = cloudRes.body?.getReader();
@@ -296,9 +278,6 @@ async function proxyToCloud(
     const data = await cloudRes.text();
     res.writeHead(cloudRes.status, {
       "Content-Type": cloudRes.headers.get("content-type") || "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
     });
     res.end(data);
   } catch (err) {
@@ -314,7 +293,8 @@ async function proxyToCloud(
 type RouteHandler = (
   req: IncomingMessage,
   res: ServerResponse,
-  params: Record<string, string>
+  params: Record<string, string>,
+  webhookDispatcher: WebhookDispatcher,
 ) => Promise<void>;
 
 /**
@@ -363,7 +343,7 @@ const addAnnotationHandler: RouteHandler = async (req, res, params) => {
   try {
     const body = await parseBody<Omit<Annotation, "id" | "sessionId" | "status" | "createdAt">>(req);
 
-    if (!body.comment || !body.element || !body.elementPath) {
+    if (typeof body.comment !== "string" || !body.element || !body.elementPath) {
       return sendError(res, 400, "comment, element, and elementPath are required");
     }
 
@@ -452,7 +432,7 @@ const getAllPendingHandler: RouteHandler = async (_req, res) => {
  * Also sends webhooks to configured URLs (via AGENTATION_WEBHOOK_URL or
  * AGENTATION_WEBHOOKS environment variables).
  */
-const requestActionHandler: RouteHandler = async (req, res, params) => {
+const requestActionHandler: RouteHandler = async (req, res, params, webhookDispatcher) => {
   try {
     const sessionId = params.id;
     const body = await parseBody<{ output: string }>(req);
@@ -480,7 +460,7 @@ const requestActionHandler: RouteHandler = async (req, res, params) => {
 
     // Send webhooks (fire and forget, non-blocking)
     const webhookUrls = getWebhookUrls();
-    sendWebhooks(actionRequest);
+    sendWebhooks(actionRequest, webhookDispatcher);
 
     // Return delivery info so client knows if anyone received it
     // Only count agent connections (with ?agent=true), not browser toolbar connections
@@ -546,7 +526,6 @@ const sseHandler: RouteHandler = async (req, res, params) => {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
-    "Access-Control-Allow-Origin": "*",
   });
 
   // Track this connection
@@ -616,7 +595,6 @@ const globalSseHandler: RouteHandler = async (req, res) => {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
-    "Access-Control-Allow-Origin": "*",
   });
 
   // Track this connection
@@ -702,11 +680,6 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
   const method = req.method || "GET";
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
-  // Add CORS headers to all responses
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Mcp-Session-Id");
-  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
 
   // POST: Handle JSON-RPC requests
   if (method === "POST") {
@@ -926,13 +899,16 @@ function matchRoute(
  * @param port - Port to listen on
  * @param apiKey - Optional API key for cloud storage mode
  */
-export function startHttpServer(port: number, apiKey?: string): void {
+export function startHttpServer(port: number, apiKey?: string): ReturnType<typeof createServer> {
+  const applyCors = createCorsPolicy();
+  const webhooks = createWebhookDispatcher();
   // Set cloud mode if API key provided
   if (apiKey) {
     setCloudApiKey(apiKey);
   }
 
   const server = createServer(async (req, res) => {
+    if (!applyCors(req, res)) return sendError(res, 403, "Origin not allowed");
     const url = new URL(req.url || "/", `http://localhost:${port}`);
     const pathname = url.pathname;
     const method = req.method || "GET";
@@ -981,14 +957,17 @@ export function startHttpServer(port: number, apiKey?: string): void {
     }
 
     try {
-      await match.handler(req, res, match.params);
+      await match.handler(req, res, match.params, webhooks);
     } catch (err) {
       console.error("Request error:", err);
       sendError(res, 500, "Internal server error");
     }
   });
 
+  server.once("close", () => webhooks.close());
+
   server.on("error", (err: NodeJS.ErrnoException) => {
+    webhooks.close();
     if (err.code === "EADDRINUSE") {
       log(`[HTTP] Port ${port} already in use — skipping HTTP server (MCP stdio still active)`);
     } else {
@@ -1003,4 +982,5 @@ export function startHttpServer(port: number, apiKey?: string): void {
       log(`[HTTP] Agentation server listening on http://localhost:${port}`);
     }
   });
+  return server;
 }

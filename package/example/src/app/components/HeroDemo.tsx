@@ -6,6 +6,23 @@ import { useState, useEffect, useRef } from "react";
 // This is purely for documentation - uses visual copies of the real UI
 
 export function HeroDemo() {
+  const [reducedMotion, setReducedMotion] = useState(true);
+  const [pageVisible, setPageVisible] = useState(true);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updateMotion = () => setReducedMotion(media.matches);
+    const updateVisibility = () => setPageVisible(document.visibilityState === "visible");
+    updateMotion();
+    updateVisibility();
+    media.addEventListener("change", updateMotion);
+    document.addEventListener("visibilitychange", updateVisibility);
+    return () => {
+      media.removeEventListener("change", updateMotion);
+      document.removeEventListener("visibilitychange", updateVisibility);
+    };
+  }, []);
+
   const [typedText, setTypedText] = useState("");
   const [cursorPos, setCursorPos] = useState({ x: 280, y: 180 });
   const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
@@ -29,7 +46,7 @@ export function HeroDemo() {
   const [terminalText, setTerminalText] = useState("");
   const [popupHeader, setPopupHeader] = useState("button.submit-btn");
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
-  const [headerText] = useState("Benji's Dashboard");
+  const [headerText] = useState("Benji's dashboard");
   const [textSelection, setTextSelection] = useState({ visible: false, x: 0, y: 0, width: 0 });
   const [showOrangeMarker, setShowOrangeMarker] = useState(false);
   const [orangeMarkerPos, setOrangeMarkerPos] = useState({ x: 0, y: 0 });
@@ -81,7 +98,7 @@ export function HeroDemo() {
       const toolbarRect = toolbarRef.current.getBoundingClientRect();
       const contentRect = contentRef.current.getBoundingClientRect();
       toolbarPosRef.current = {
-        x: toolbarRect.left - contentRect.left + toolbarRect.width / 2,
+        x: toolbarRect.right - contentRect.left - toolbarRect.height / 2,
         y: toolbarRect.top - contentRect.top + toolbarRect.height / 2,
       };
     }
@@ -145,7 +162,7 @@ Make this more prominent`;
   // Animation sequence
   useEffect(() => {
     let cancelled = false;
-    let interval: ReturnType<typeof setInterval>;
+
 
     const resetState = () => {
       setTypedText("");
@@ -512,7 +529,7 @@ Make this more prominent`;
       await delay(400);
       if (cancelled) return;
 
-      // Show terminal first (empty, just with Claude welcome)
+      // Show the copied feedback in a neutral output panel
       setShowTerminal(true);
       await delay(600);
       if (cancelled) return;
@@ -546,43 +563,29 @@ Make this more prominent`;
       await delay(400);
     };
 
-    const startAnimation = () => {
-      cancelled = false;
-      runAnimation();
-      // Slightly shorter interval on mobile (faster animations, shorter text)
-      const loopInterval = window.innerWidth <= 640 ? 14000 : 16000;
-      interval = setInterval(runAnimation, loopInterval);
-    };
+    if (reducedMotion) {
+      resetState();
+      setShowTerminal(true);
+      setTerminalText(getTerminalOutput(window.innerWidth <= 640));
+      return;
+    }
+    if (!pageVisible) return;
 
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        // Page became visible - cancel current animation and restart fresh
-        cancelled = true;
-        clearInterval(interval);
-        resetState();
-        setTimeout(() => {
-          startAnimation();
-        }, 100);
-      }
+    // Start the next cycle only when the previous one has finished.
+    const loop = async () => {
+      while (!cancelled) await runAnimation();
     };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    startAnimation();
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, []);
+    void loop();
+    return () => { cancelled = true; };
+  }, [reducedMotion, pageVisible]);
 
   return (
-    <div className="hero-demo-container">
+    <div className={`hero-demo-container${reducedMotion ? " reduced-motion" : ""}`}>
       <style suppressHydrationWarning>{`
         .hero-demo-container {
           position: relative;
           width: 100%;
-          margin: 1.5rem 0;
+          margin: 1.5rem 0 2rem;
         }
 
         .hero-demo-browser {
@@ -592,9 +595,7 @@ Make this more prominent`;
           background: #F6F5F4;
           border-radius: 12px;
           overflow: hidden;
-          box-shadow:
-            0 0 0 1px rgba(0, 0, 0, 0.06),
-            0 4px 16px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
         .hero-demo-browser-bar {
@@ -923,7 +924,7 @@ Make this more prominent`;
           justify-content: center;
           background: #1a1a1a;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(0, 0, 0, 0.15);
-          transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1), border-radius 0.4s cubic-bezier(0.19, 1, 0.22, 1), padding 0.4s cubic-bezier(0.19, 1, 0.22, 1), transform 0.15s ease, background 0.15s ease;
+          transition: width 0.36s cubic-bezier(0.19, 1, 0.22, 1), transform 0.36s cubic-bezier(0.19, 1, 0.22, 1), background 0.15s ease;
           width: 36px;
           height: 36px;
           border-radius: 18px;
@@ -931,7 +932,6 @@ Make this more prominent`;
 
         .hero-demo-toolbar.hovered:not(.expanded) {
           background: #2a2a2a;
-          transform: scale(1.05);
         }
 
         .hero-demo-toolbar.clicking:not(.expanded) {
@@ -941,12 +941,13 @@ Make this more prominent`;
 
         .hero-demo-toolbar.expanded {
           width: 200px;
-          border-radius: 20px;
-          padding: 0 6px 0 6px;
-          justify-content: flex-start;
         }
 
+        /* One persistent end-cap icon, matching ToolbarToggleIcon in the package. */
         .hero-demo-toolbar-icon {
+          position: absolute;
+          top: 0;
+          right: 0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -955,21 +956,52 @@ Make this more prominent`;
           color: rgba(255, 255, 255, 0.85);
         }
 
-        .hero-demo-toolbar.expanded .hero-demo-toolbar-icon {
-          display: none;
+        .hero-demo-toolbar-icon svg { overflow: visible; }
+        .hero-demo-toolbar-icon path {
+          transform-box: fill-box;
+          transform-origin: center;
+          transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.16s ease;
         }
+        .hero-demo-toggle-top,
+        .hero-demo-toggle-middle { vector-effect: non-scaling-stroke; }
+        .hero-demo-toolbar-icon .hero-demo-toggle-bottom { transform-origin: left center; }
+        .expanded .hero-demo-toggle-top { transform: translateY(5.25px) rotate(45deg) scaleX(1.1422494); }
+        .expanded .hero-demo-toggle-middle { transform: translateX(3.5px) rotate(-45deg) scaleX(2.4748737); }
+        .expanded .hero-demo-toggle-bottom { transform: scaleX(0); opacity: 0; }
+        .expanded .hero-demo-toggle-sparkle { transform: scale(0); opacity: 0; }
 
         .hero-demo-toolbar-buttons {
-          display: none;
+          position: absolute;
+          right: 4px;
+          top: 4px;
+          display: flex;
           align-items: center;
           gap: 3px;
+          pointer-events: none;
+          opacity: 0;
+          filter: blur(6px);
+          transform: scale(0.4);
+          transform-origin: right center;
+          transition: filter 0.14s ease-out, opacity 0.14s ease-out, transform 0.36s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
         .hero-demo-toolbar.expanded .hero-demo-toolbar-buttons {
-          display: flex;
+          opacity: 1;
+          filter: blur(0);
+          transform: scale(1);
+          transition: filter 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease-out, transform 0.42s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .hero-demo-toolbar,
+          .hero-demo-toolbar-icon path,
+          .hero-demo-toolbar-buttons,
+          .hero-demo-toolbar.expanded .hero-demo-toolbar-buttons { transition: none; }
+          .hero-demo-toolbar-buttons { filter: none; transform: none; }
         }
 
         .hero-demo-toolbar-btn {
+          flex-shrink: 0;
           width: 28px;
           height: 28px;
           border-radius: 50%;
@@ -1131,20 +1163,18 @@ Make this more prominent`;
           opacity: 0.4;
         }
 
-        /* Terminal - Cream style with Claude bot */
+        /* Copied output */
         .hero-demo-terminal {
           position: absolute;
           top: 20px;
           right: 25px;
           width: 340px;
           height: 280px;
-          background: #faf9f7;
+          background: #fff;
           border-radius: 10px;
           overflow: hidden;
-          box-shadow:
-            0 0 0 1px rgba(0, 0, 0, 0.08),
-            0 4px 16px rgba(0, 0, 0, 0.12),
-            0 12px 32px rgba(0, 0, 0, 0.08);
+          border: 1px solid rgba(0, 0, 0, 0.09);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
           opacity: 0;
           transform: translateY(8px) scale(0.98);
           transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1177,8 +1207,8 @@ Make this more prominent`;
 
         .hero-demo-terminal-title {
           flex: 1;
-          text-align: center;
-          font-size: 13px;
+          text-align: left;
+          font-size: 11px;
           font-weight: 600;
           color: rgba(0, 0, 0, 0.85);
           font-family: system-ui, -apple-system, sans-serif;
@@ -1298,11 +1328,10 @@ Make this more prominent`;
             right: 8px;
           }
 
-          .hero-demo-toolbar.expanded {
-            width: auto;
-            border-radius: 16px;
-            padding: 4px 8px;
-          }
+          .hero-demo-toolbar.expanded { width: 165px; }
+          .hero-demo-toolbar-icon { width: 28px; height: 28px; }
+          .hero-demo-toolbar-icon svg { width: 16px; height: 16px; }
+          .hero-demo-toolbar-buttons { top: 3px; right: 3px; }
 
           .hero-demo-toolbar-btn {
             width: 22px;
@@ -1386,7 +1415,7 @@ Make this more prominent`;
       `}</style>
 
       {/* Browser window */}
-      <div className={`hero-demo-browser ${showTerminal ? 'faded' : ''}`}>
+      <div aria-hidden="true" className={`hero-demo-browser ${showTerminal ? 'faded' : ''}`}>
         {/* Browser chrome */}
         <div className="hero-demo-browser-bar">
           <div className="hero-demo-dot red" />
@@ -1463,13 +1492,25 @@ Make this more prominent`;
 
           {/* Toolbar - using exact real icons */}
           <div ref={toolbarRef} className={`hero-demo-toolbar ${isToolbarExpanded ? "expanded" : ""} ${isToolbarHovered ? "hovered" : ""} ${isToolbarClicking ? "clicking" : ""}`}>
-            {/* Collapsed icon - IconListSparkle */}
             <div className="hero-demo-toolbar-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M11.5 12L5.5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M18.5 6.75L5.5 6.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9.25 17.25L5.5 17.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 12.75L16.5179 13.9677C16.8078 14.6494 17.3506 15.1922 18.0323 15.4821L19.25 16L18.0323 16.5179C17.3506 16.8078 16.8078 17.3506 16.5179 18.0323L16 19.25L15.4821 18.0323C15.1922 17.3506 14.6494 16.8078 13.9677 16.5179L12.75 16L13.9677 15.4821C14.6494 15.1922 15.1922 14.6494 15.4821 13.9677L16 12.75Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path className="hero-demo-toggle-top" d="M5.5 6.75H18.5" />
+                <path className="hero-demo-toggle-middle" d="M5.5 12H11.5" />
+                <path className="hero-demo-toggle-bottom" d="M5.5 17.25H9.25" />
+                <path
+                  className="hero-demo-toggle-sparkle"
+                  d="M16 12.75L16.5179 13.9677C16.8078 14.6494 17.3506 15.1922 18.0323 15.4821L19.25 16L18.0323 16.5179C17.3506 16.8078 16.8078 17.3506 16.5179 18.0323L16 19.25L15.4821 18.0323C15.1922 17.3506 14.6494 16.8078 13.9677 16.5179L12.75 16L13.9677 15.4821C14.6494 15.1922 15.1922 14.6494 15.4821 13.9677L16 12.75Z"
+                />
               </svg>
             </div>
 
@@ -1522,13 +1563,8 @@ Make this more prominent`;
 
               <div className="hero-demo-toolbar-divider" />
 
-              {/* X */}
-              <div className="hero-demo-toolbar-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M16.25 16.25L7.75 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.75 16.25L16.25 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              {/* Reserve the end cap occupied by the persistent toggle above. */}
+              <div className="hero-demo-toolbar-btn" aria-hidden="true" />
             </div>
           </div>
           </div>
@@ -1627,47 +1663,15 @@ Make this more prominent`;
         </div>
       </div>
 
-      {/* Terminal window - Ghostty style overlay */}
-      <div className={`hero-demo-terminal ${showTerminal ? "visible" : ""}`}>
+      {/* Agent-independent output preview */}
+      <div aria-hidden="true" className={`hero-demo-terminal ${showTerminal ? "visible" : ""}`}>
         <div className="hero-demo-terminal-bar">
           <div className="hero-demo-terminal-dot red" />
           <div className="hero-demo-terminal-dot yellow" />
           <div className="hero-demo-terminal-dot green" />
-          <div className="hero-demo-terminal-title">Benji's Project</div>
+          <div className="hero-demo-terminal-title">Feedback for your agent</div>
         </div>
         <div className="hero-demo-terminal-content">
-          <div className="hero-demo-terminal-welcome">
-            {/* Claude Code welcome box - pixel-perfect recreation */}
-            <svg viewBox="0 0 240 76" fill="none" style={{ width: '100%', height: 'auto', display: 'block' }}>
-              {/* Orange box border */}
-              <rect x="4" y="4" width="148" height="68" rx="3" stroke="#D97757" strokeWidth="1.5" fill="none" />
-
-              {/* Title to the right of box */}
-              <text x="160" y="16" fill="rgba(0,0,0,0.7)" fontSize="9" fontFamily="ui-monospace, SFMono-Regular, monospace" fontWeight="500">Claude Code</text>
-              <text x="160" y="26" fill="rgba(0,0,0,0.4)" fontSize="7" fontFamily="ui-monospace, SFMono-Regular, monospace">v2.1.14</text>
-
-              {/* Welcome text */}
-              <text x="78" y="20" fill="rgba(0,0,0,0.6)" fontSize="8" fontFamily="ui-monospace, SFMono-Regular, monospace" textAnchor="middle">Welcome back Benji!</text>
-
-              {/* Claude bot icon */}
-              <g transform="translate(56, 26) scale(0.35)">
-                <path d="M104.998 0H20.998V16.2H104.998V0Z" fill="#D77757"/>
-                <path d="M34.998 16.1953H20.998V32.3953H34.998V16.1953Z" fill="#D77757"/>
-                <rect x="35" y="14.7266" width="56" height="29.4545" fill="black"/>
-                <path d="M84 14.7266H42V36.8175H84V14.7266Z" fill="#D77757"/>
-                <path d="M105.002 16.1953H91.002V32.3953H105.002V16.1953Z" fill="#D77757"/>
-                <path d="M119 32.4023H7V48.6023H119V32.4023Z" fill="#D77757"/>
-                <path d="M104.998 48.5977H20.998V64.7977H104.998V48.5977Z" fill="#D77757"/>
-                <path d="M35 64.8047H28V81.0047H35V64.8047Z" fill="#D77757"/>
-                <path d="M49 64.8047H42V81.0047H49V64.8047Z" fill="#D77757"/>
-                <path d="M84 64.8047H77V81.0047H84V64.8047Z" fill="#D77757"/>
-                <path d="M98.002 64.8047H91.002V81.0047H98.002V64.8047Z" fill="#D77757"/>
-              </g>
-
-              {/* Bottom info */}
-              <text x="78" y="62" fill="rgba(0,0,0,0.4)" fontSize="7" fontFamily="ui-monospace, SFMono-Regular, monospace" textAnchor="middle">Opus 4.5 · ~/Code/agentation</text>
-            </svg>
-          </div>
           {terminalText}
           <span style={{ opacity: 0.4 }}>█</span>
         </div>

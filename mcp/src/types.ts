@@ -21,6 +21,13 @@ export type Annotation = {
   isMultiSelect?: boolean; // true if created via drag selection
   isFixed?: boolean; // true if element has fixed/sticky positioning (marker stays fixed)
   reactComponents?: string; // React component hierarchy (e.g. "<App> <Dashboard> <Button>")
+  sourceFile?: string; // Source file from React _debugSource (dev mode)
+  attributes?: Record<string, string>;
+  frame?: {
+    path: Array<{ index: number; id?: string; url: string }>;
+    x: number; y: number; fixed: boolean;
+    boundingBox: { x: number; y: number; width: number; height: number };
+  };
 
   // Annotation kind (defaults to "feedback" when undefined — backward compat)
   kind?: "feedback" | "placement" | "rearrange";
