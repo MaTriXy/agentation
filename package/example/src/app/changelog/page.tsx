@@ -29,6 +29,16 @@ const badgeLabels: Record<ChangeType, string> = {
 
 const releases: Release[] = [
   {
+    version: "3.1.2",
+    date: "September 21, 2026",
+    published: false,
+    changes: [
+      { type: "improved", text: "Copy and Send auto-clear now covers notes that received a server ID during the action, including notes uploaded while joining a session." },
+      { type: "improved", text: "Closing an MCP session cancels its in-flight tool calls and releases the session immediately." },
+      { type: "improved", text: <><code>--host</code> also points the bundled stdio tools at the bound address, so a specific interface works without <code>--http-url</code>.</> },
+    ],
+  },
+  {
     version: "3.1.1",
     date: "September 21, 2026",
     changes: [
