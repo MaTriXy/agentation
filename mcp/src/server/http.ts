@@ -75,10 +75,17 @@ const mcpTransports = new Map<string, StreamableHTTPServerTransport>();
 /**
  * Initialize a new MCP server with HTTP transport for a session.
  */
-function createMcpSession(): { server: Server; transport: StreamableHTTPServerTransport } {
+function createMcpSession(): { server: Server; transport: StreamableHTTPServerTransport; isClosed: () => boolean } {
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => crypto.randomUUID(),
   });
+  // Registered before connect so the SDK wraps it and keeps its own cleanup,
+  // which aborts in-flight tool calls when the session closes.
+  let closed = false;
+  transport.onclose = () => {
+    closed = true;
+    if (transport.sessionId) mcpTransports.delete(transport.sessionId);
+  };
 
   const server = new Server(
     { name: "agentation", version: "0.0.1" },
@@ -96,7 +103,7 @@ function createMcpSession(): { server: Server; transport: StreamableHTTPServerTr
   });
 
   server.connect(transport);
-  return { server, transport };
+  return { server, transport, isClosed: () => closed };
 }
 
 // -----------------------------------------------------------------------------
@@ -685,6 +692,7 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
   // POST: Handle JSON-RPC requests
   if (method === "POST") {
     let transport: StreamableHTTPServerTransport;
+    let created: { isClosed: () => boolean } | null = null;
 
     if (sessionId) {
       // Session ID provided - must exist in our map
@@ -700,8 +708,9 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
       transport = mcpTransports.get(sessionId)!;
     } else {
       // No session ID - this should be an initialize request, create new session
-      const { transport: newTransport } = createMcpSession();
-      transport = newTransport;
+      const session = createMcpSession();
+      transport = session.transport;
+      created = session;
     }
 
     try {
@@ -718,11 +727,12 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
       // Handle the request through the transport (it writes directly to res)
       await transport.handleRequest(req, res, parsedBody);
 
-      // Store the transport with its session ID after the request is handled (for new sessions)
+      // Store a newly created transport once initialization assigned its session ID.
+      // Requests on existing sessions never re-add one, so a session deleted while
+      // a call was in flight stays deleted.
       const newSessionId = transport.sessionId;
-      if (newSessionId && !mcpTransports.has(newSessionId)) {
+      if (created && !created.isClosed() && newSessionId && !mcpTransports.has(newSessionId)) {
         mcpTransports.set(newSessionId, transport);
-        transport.onclose = () => { mcpTransports.delete(newSessionId); };
         log(`[MCP HTTP] New session created: ${newSessionId}`);
       }
     } catch (err) {

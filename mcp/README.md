@@ -209,6 +209,9 @@ specific interface with `--host` or `AGENTATION_HOST`:
 agentation-mcp server --host 0.0.0.0
 ```
 
+The bundled stdio tools follow that address automatically unless `--http-url`
+is set.
+
 Pages served from that machine's private address are already allowed by the
 default origin policy below; use `AGENTATION_CORS_ORIGINS` for public origins.
 

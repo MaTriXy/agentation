@@ -113,6 +113,29 @@ describe("clear batches", () => {
     expect(localStorage.getItem(getStorageKey(window.location.pathname))).toBeNull();
   });
 
+  it("clears a note whose ID the server replaced while the copy was pending", async () => {
+    localStorage.setItem("feedback-toolbar-settings", JSON.stringify({ autoClearAfterCopy: true }));
+    let finishUpload!: (value: unknown) => void;
+    const uploading = new Promise(resolve => { finishUpload = resolve; });
+    const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url.endsWith("/sessions/session/annotations") && options?.method === "POST") return uploading;
+      return Promise.resolve({ ok: true, json: async () => (url.endsWith("/health") ? {} : { id: "session", annotations: [] }) });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("EventSource", class extends EventTarget { close() {} });
+    const onClear = vi.fn();
+    render(<PageFeedbackToolbarCSS endpoint="http://swap.test" sessionId="session" onAnnotationsClear={onClear} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("http://swap.test/sessions/session/annotations", expect.objectContaining({ method: "POST" })));
+    fireEvent.click(root().getByRole("button", { name: "Start feedback mode" }));
+    fireEvent.click(root().getByRole("button", { name: "Copy feedback" }));
+    await waitFor(() => expect(clipboard).toHaveBeenCalled());
+    // The server assigns a new ID inside the auto-clear window, recreating the note object.
+    await act(async () => finishUpload({ ok: true, json: async () => ({ ...note, id: "server-note", sessionId: "session" }) }));
+    await waitFor(() => expect(onClear).toHaveBeenCalledOnce());
+    expect(onClear.mock.calls[0][0]).toEqual([expect.objectContaining({ id: "server-note", comment: note.comment })]);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/annotations\/server-note$/), expect.objectContaining({ method: "DELETE" })));
+  });
+
   it("ignores an older copy result after a newer copy succeeds", async () => {
     let failFirst!: (error: Error) => void;
     clipboard.mockImplementationOnce(() => new Promise((_, reject) => { failFirst = reject; }));

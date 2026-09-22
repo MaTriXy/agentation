@@ -78,7 +78,8 @@ npx agentation-mcp help      # Show help`}
             language="bash"
             code={`--port <port>      # HTTP server port (default: 4747)
 --mcp-only         # Skip HTTP server, only run MCP on stdio
---http-url <url>   # HTTP server URL for MCP to fetch from`}
+--http-url <url>   # HTTP server URL for MCP to fetch from
+--host <address>   # Interface to bind (default: loopback only)`}
           />
         </section>
 
@@ -86,7 +87,7 @@ npx agentation-mcp help      # Show help`}
           <h2 id="browser-origins">Browser origins and delivery</h2>
           <p>Set <code>AGENTATION_CORS_ORIGINS</code> to a comma-separated list of exact HTTP(S) origins, including ports. The policy also applies to event streams and errors.</p>
           <CodeBlock language="bash" code={`AGENTATION_CORS_ORIGINS='http://localhost:3000,https://preview.example.com' npx agentation-mcp server`} />
-          <p>When unset, origins remain unrestricted. An empty value rejects every browser Origin. Requests without an Origin remain allowed; this setting is not authentication.</p>
+          <p>When unset, dev-server origins are allowed: <code>localhost</code>, <code>*.localhost</code>, loopback and private-network addresses, and <code>.local</code>, <code>.test</code> or <code>.internal</code> hostnames on any port. Set the variable for public origins, or to <code>*</code> to allow every origin. An empty value rejects every browser Origin. Requests without an Origin remain allowed; this setting is not authentication.</p>
           <p>Server webhooks retry network failures, timeouts, HTTP 429 and 5xx responses. Each retry keeps the same <code>X-Agentation-Delivery-Id</code> so receivers can deduplicate. Delivery is best effort and in memory; pending deliveries do not survive a restart.</p>
           <p><a href="/webhooks#delivery-retries">Configure delivery retries</a> or <a href="/api#memory-event-history">bound in-memory event history</a>.</p>
         </section>

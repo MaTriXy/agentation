@@ -307,6 +307,14 @@ if (command === "init") {
       }
     }
 
+    // The stdio tools fetch from the HTTP server; follow a specific bind address
+    // unless --http-url was given. Unspecified addresses stay reachable at localhost.
+    if (host && !args.includes("--http-url")) {
+      const unspecified = ["0.0.0.0", "::", "[::]"].includes(host);
+      const hostname = !unspecified && host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+      httpUrl = unspecified ? `http://localhost:${port}` : `http://${hostname}:${port}`;
+    }
+
     // API key from flag or environment variable
     const apiKey = apiKeyArg || process.env.AGENTATION_API_KEY;
     if (apiKey) {
