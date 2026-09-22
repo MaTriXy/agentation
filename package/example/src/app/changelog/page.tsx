@@ -31,7 +31,6 @@ const releases: Release[] = [
   {
     version: "3.1.2",
     date: "September 21, 2026",
-    published: false,
     changes: [
       { type: "improved", text: "Copy and Send auto-clear now covers notes that received a server ID during the action, including notes uploaded while joining a session." },
       { type: "improved", text: "Closing an MCP session cancels its in-flight tool calls and releases the session immediately." },
