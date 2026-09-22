@@ -68,7 +68,7 @@ export function FeaturesDemo() {
           {activeFeature === "animation-pause" && <AnimationPauseDemo key={animationKey} />}
         </div>
 
-        <p key={activeFeature} style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'rgba(0,0,0,0.5)', whiteSpace: 'pre-line', lineHeight: 1.3, animation: 'fadeIn 0.3s ease' }}>{currentFeature.caption}</p>
+        <p key={activeFeature} className="fd-caption">{currentFeature.caption}</p>
       </DemoTabs>
     </div>
   );
@@ -1613,7 +1613,7 @@ export function SettingsDemo() {
       </div>
 
       {/* Caption - outside container like other demos */}
-      <p key={activeCaption} style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'rgba(0,0,0,0.5)', whiteSpace: 'pre-line', lineHeight: 1.3, animation: 'fadeIn 0.3s ease' }}>
+      <p key={activeCaption} className="fd-caption">
         {activeCaption ? captions[activeCaption] : captions.output}
       </p>
     </div>
@@ -1842,7 +1842,7 @@ export function SmartIdentificationDemo() {
       </div>
 
       {/* Caption */}
-      <p key={activeCaption} style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'rgba(0,0,0,0.5)', lineHeight: 1.5, animation: 'fadeIn 0.3s ease' }}>
+      <p key={activeCaption} className="fd-caption">
         {captions[activeCaption]}
       </p>
     </div>
@@ -2043,7 +2043,7 @@ export function ReactDetectionDemo() {
       </div>
 
       {/* Caption */}
-      <p key={activeCaption} style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'rgba(0,0,0,0.5)', lineHeight: 1.5, animation: 'fadeIn 0.3s ease' }}>
+      <p key={activeCaption} className="fd-caption">
         {captions[activeCaption]}
       </p>
     </div>

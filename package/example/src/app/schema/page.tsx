@@ -18,7 +18,7 @@ export default function SchemaPage() {
           <p>
             The Annotation Format Schema (AFS) is an open format created and used by Agentation for capturing UI feedback
             in a way that AI coding agents can reliably parse and act on. Think
-            of it like <strong>smart Figma comments for your running app</strong> &mdash; persistent
+            of it like <strong>smart Figma comments for your running app</strong>: persistent
             annotations attached to specific elements, with threads, status tracking,
             resolution workflows, and structured metadata that agents can actually understand.
           </p>
@@ -36,11 +36,11 @@ export default function SchemaPage() {
             A structured schema isn&apos;t just about clean data &mdash; it enables entirely new workflows:
           </p>
           <ul>
-            <li><strong>Two-way communication</strong> &mdash; Agents can reply to annotations, asking &ldquo;Should this be 24px or 16px?&rdquo; and get responses in the same thread</li>
-            <li><strong>Status tracking</strong> &mdash; See what&apos;s pending, acknowledged, resolved, or dismissed at a glance</li>
-            <li><strong>Cross-page queries</strong> &mdash; &ldquo;What annotations do I have?&rdquo; works across your entire site</li>
-            <li><strong>Bulk operations</strong> &mdash; &ldquo;Clear all annotations&rdquo; or &ldquo;Show me blocking issues only&rdquo;</li>
-            <li><strong>Persistent history</strong> &mdash; Feedback survives page refreshes and browser sessions</li>
+            <li><strong>Two-way communication</strong>: Agents can reply to annotations, asking &ldquo;Should this be 24px or 16px?&rdquo; and get responses in the same thread</li>
+            <li><strong>Status tracking</strong>: See what&apos;s pending, acknowledged, resolved, or dismissed at a glance</li>
+            <li><strong>Cross-page queries</strong>: &ldquo;What annotations do I have?&rdquo; works across your entire site</li>
+            <li><strong>Bulk operations</strong>: &ldquo;Clear all annotations&rdquo; or &ldquo;Show me blocking issues only&rdquo;</li>
+            <li><strong>Persistent history</strong>: Feedback survives page refreshes and browser sessions</li>
           </ul>
           <p>
             Without a schema, feedback is fire-and-forget. With one, it becomes a conversation.
@@ -50,11 +50,11 @@ export default function SchemaPage() {
         <section>
           <h2 id="design-goals">Design Goals</h2>
           <ul>
-            <li><strong>Agent-readable</strong> &mdash; Structured data that LLMs can parse without guessing</li>
-            <li><strong>Framework-agnostic</strong> &mdash; Works with any UI, though React gets extra context</li>
-            <li><strong>Tool-agnostic</strong> &mdash; Any tool can emit, any agent can consume</li>
-            <li><strong>Human-authored</strong> &mdash; Designed for feedback from humans (or automated reviewers)</li>
-            <li><strong>Minimal core</strong> &mdash; Few required fields, many optional for richer context</li>
+            <li><strong>Agent-readable</strong>: Structured data that LLMs can parse without guessing</li>
+            <li><strong>Framework-agnostic</strong>: Works with any UI, though React gets extra context</li>
+            <li><strong>Tool-agnostic</strong>: Any tool can emit, any agent can consume</li>
+            <li><strong>Human-authored</strong>: Designed for feedback from humans (or automated reviewers)</li>
+            <li><strong>Minimal core</strong>: Few required fields, many optional for richer context</li>
           </ul>
         </section>
 

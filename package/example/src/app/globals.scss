@@ -103,7 +103,7 @@ h2 {
   font-weight: 550;
   line-height: var(--docs-small-leading);
   letter-spacing: -0.005rem;
-  margin-bottom: var(--docs-space-3);
+  margin-bottom: var(--docs-space-4);
   color: rgba(0, 0, 0, 0.78);
   display: flex;
   align-items: center;
@@ -344,8 +344,9 @@ button {
   > section {
     margin-top: 0;
 
-    & + section { margin-top: var(--docs-space-2); }
+    & + section { margin-top: var(--docs-space-4); }
     > * + * { margin-top: var(--docs-space-3); }
+    > :last-child { margin-bottom: 0; }
     > h3 { margin-top: var(--docs-space-6); margin-bottom: var(--docs-space-2); }
     > h3:first-child { margin-top: 0; }
   }

@@ -196,10 +196,10 @@ export default function OutputPage() {
       <section>
         <h2>When to use each format</h2>
         <ul>
-          <li><strong>Compact</strong> &mdash; Quick feedback with minimal context. Good for small fixes.</li>
-          <li><strong>Standard</strong> &mdash; Balanced detail for most use cases. Includes location and classes.</li>
-          <li><strong>Detailed</strong> &mdash; Full context with bounding boxes and nearby text. Good for complex issues.</li>
-          <li><strong>Forensic</strong> &mdash; Maximum detail including computed styles. For debugging layout/style issues.</li>
+          <li><strong>Compact</strong>: Quick feedback with minimal context. Good for small fixes.</li>
+          <li><strong>Standard</strong>: Balanced detail for most use cases. Includes location and classes.</li>
+          <li><strong>Detailed</strong>: Full context with bounding boxes and nearby text. Good for complex issues.</li>
+          <li><strong>Forensic</strong>: Maximum detail including computed styles. For debugging layout/style issues.</li>
         </ul>
       </section>
 
@@ -239,10 +239,10 @@ export default function OutputPage() {
           into your agent:
         </p>
         <ul>
-          <li><strong>Add context</strong> &mdash; prepend with &ldquo;I&rsquo;m working on the dashboard page...&rdquo;</li>
-          <li><strong>Prioritize</strong> &mdash; reorder annotations by importance</li>
-          <li><strong>Remove noise</strong> &mdash; delete annotations that aren&rsquo;t relevant</li>
-          <li><strong>Add instructions</strong> &mdash; append &ldquo;Fix these issues and run the tests&rdquo;</li>
+          <li><strong>Add context</strong>: prepend with &ldquo;I&rsquo;m working on the dashboard page...&rdquo;</li>
+          <li><strong>Prioritize</strong>: reorder annotations by importance</li>
+          <li><strong>Remove noise</strong>: delete annotations that aren&rsquo;t relevant</li>
+          <li><strong>Add instructions</strong>: append &ldquo;Fix these issues and run the tests&rdquo;</li>
         </ul>
       </section>
       <section>
